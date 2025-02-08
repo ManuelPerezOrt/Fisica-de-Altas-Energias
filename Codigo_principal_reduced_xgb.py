@@ -6,7 +6,7 @@ import mimetypes
 import sys
 from tqdm import tqdm
 import time
-
+import datatable as dt
 #Solicitar instrucciones desde terminal
 
 mimetypes.add_type('lhco', '.lhco')
@@ -15,6 +15,7 @@ mimetypes.add_type('csv', '.csv')
 signal_path=input( 'Ingrese el path de su archivo SIGNAL, puede ser de los formatos .lhco o .csv: \n')
 
 pathsback = []
+evit=input("Si ya tiene un bg con la base de datos calculada coloque 1 y el path que colocara a continuacion sera ese, de caso contrario ignore este mensaje(pulse enter):") 
 print('Ingrese el path de su archivo de BACKGROUND, puede ser de los formatos .lhco o .csv: (presione enter para continuar) \n')
 while True:
 	paths = input('Path: ')
@@ -85,7 +86,7 @@ while True:
 
     lista.append(elemento)
 lista = [(int(e.split()[0]), e.split()[1]) for e in lista]
-print(lista)
+#print(lista)
 cantidad=[]
 particulas=[]
 num_list = []
@@ -123,6 +124,7 @@ combinaciones_cuartetos=list(combinations(lista_num, 4))
 #lista = pd.DataFrame(num_list, columns=['typ'])
 #print(lista)
 
+
 """
 #Filtrado de LHCO
 """
@@ -151,11 +153,11 @@ def filtrar_eventos(df, num_list):
 # Aplicar la función a ambos DataFrames
 filtered_dfbg = filtrar_eventos(filtered_dfbg, num_list)
 filtered_dfsg = filtrar_eventos(filtered_dfsg, num_list)
-print(filtered_dfbg)
-print(filtered_dfsg)
+#print(filtered_dfbg)
+#print(filtered_dfsg)
 #Funcion para no.jets
 def Num_jets(evento):
-    jets=evento[evento['typ']==4]
+    jets=evento[evento['typ']== 4]
     njets=len(jets)
     return njets
 #Vector de momento
@@ -360,25 +362,32 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     # Concatenar solo los DataFrames que no están vacíos
     csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos], axis=1)
     csv_combined["#_jets"] = no_jets
-
+    #print(no_jets)
     return csv_combined
-# Aplicar la función a ambos DataFrames
-csv_bg = calculos_eventos(filtered_dfbg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
-csv_bg['Td'] = "b"
 
+# Aplicar la función a ambos DataFrames
 csv_sig = calculos_eventos(filtered_dfsg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
 csv_sig['Td'] = "s"
 
-df_combined = pd.concat([csv_bg, csv_sig], ignore_index=True)
+csv_bg = calculos_eventos(filtered_dfbg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
+csv_bg['Td'] = "b"
+name_bg=input("Inserte el nombre con el que quiere guardar los resultados del bg , este le puede ser util para acelerar el proceso si desea analizar otra masa")
+name_bg=name_bg + ".csv"
+csv_bg.to_csv(name_bg, index=True)
+print("Se guardo los analisis para el BG por si se utilizará en proximos calculos para que no sea necesario volver a calcular, se guardo con el nombre BGprocess.csv")
+
+df_combined = pd.concat([csv_bg, csv_sig], ignore_index=False)
 
 # Mantener la numeración de la primera columna
-df_combined.iloc[:, 0] = range(1, len(df_combined) + 1)
+df_combined.reset_index(drop=True, inplace=True)
+df_combined.index += 1
+#print(df_combined)
 
 # Guardar la base de datos combinada
 df_combined.to_csv(Final_name, index=True)
 
 print(f'El archivo fue creado con el nombre: {Final_name}')
-
+print("Ahora se iniciará con el proceso de entrenamiento de BDT, el archivo final se sobreescribira sobre el que ya fue creado")
 #INICIA PROCESO PARA BDT
 import xgboost as xgb
 import matplotlib.pyplot as plt
@@ -541,7 +550,7 @@ def plot_classifier_distributions(model, test, train, cols, print_params=False, 
 
 print('Size of data: {}'.format(df_shuffled.shape))
 print('Number of events: {}'.format(df_shuffled.shape[0]))
-print('Number of columns: {}'.format(df_shuffled.shape[1]))
+#print('Number of columns: {}'.format(df_shuffled.shape[1]))
 
 print ('\nList of features in dataset:')
 for col in df_shuffled.columns:
@@ -589,6 +598,7 @@ signal4train = signal4train.drop(to_drop_filtered, axis=1)
 #same for bkg4train
 bkg4train = bkg4train.drop(to_drop_filtered, axis=1)
 print(f"Se borraran las siguientes columnas dadas su correlacion :  {to_drop}")
+vars_for_train = list(vars_for_train)
 for var in to_drop:
     vars_for_train.remove(var)
 data4label   = df_shuffled[vars_for_train]
@@ -616,10 +626,10 @@ signal_label    = signal4train['signal/bkgnd'] #signal_y
 #BKGND
 bkgnd_features = bkg4train.drop(['signal/bkgnd'], axis=1) # bkgnd_x
 bkgnd_labels   = bkg4train['signal/bkgnd'] # bkgnd_y
-test=input("El entrenamiento se realizará preestablecidamente con una proporcion de 0.8 para el entrenamiento, ¿desea cambiarla?Si=1, No=0")
+test=input("El entrenamiento se realizará preestablecidamente con una proporcion de 0.8 para el entrenamiento, ¿desea cambiarla?Si=1, No=0: ")
 #SIGNAL
 if test == "1" :
-    size=input("Coloque el valor de la nueva proporcion que tendrá el entrenamiento (anteriormente era 0.8)")
+    size=input("Coloque el valor de la nueva proporcion que tendrá el entrenamiento (anteriormente era 0.8) ")
     size=float(size)
 size=0.8
 train_sig_feat, test_sig_feat, train_sig_lab, test_sig_lab = train_test_split(signal_features, signal_label,
@@ -729,7 +739,7 @@ modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
 #Inicia los resultados del modelo 
 fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols = cols, print_params=False)
 #ax.set_title(r'Total sample size $\approx$ '+str(len(train) + len(test))+' optimized')
-name_dist=input("Inserte el nombre con que desea guardar la grafica que sera creada como el resultado del clasificador")
+name_dist=input("Inserte el nombre con que desea guardar la grafica que sera creada como el resultado del clasificador: ")
 
 plt.savefig(name_dist + '.png')
 #plt.savefig('classifier_distribution.pdf')
@@ -763,4 +773,62 @@ def mycsvfile(pdf, myname):
     table_df = dt.Frame(pdf)
     table_df.to_csv(myname)
 mycsvfile(df_shuffled,Final_name)
+print(f'El archivo fue creado con el nombre: {Final_name}')
+
+#INICIA EL CALCULO DE SIGNIFICANCIA
+df_shuffled=pd.read_csv(Final_name)
+s_events = df_shuffled[df_shuffled['Td'] == "s"].head(factor)  # specified number of signal events
+b_events = df_shuffled[df_shuffled['Td'] == "b"].head(factor)  #specified number of background events
+
+# Combining filtered signal and background datasets for training
+df_shuffled = pd.concat([s_events, b_events], ignore_index=True)
+
+XSsignal = int(input("Ingrese la cross section de la señal en pb")) # Sección eficaz de la señal
+XSbackground = int(input("Ingrese la cross section del background en pb"))  # Sección eficaz del background
+def CalSig(mypdf, xgbcut,XSs,XSb):
+    mypdf = mypdf[mypdf['XGB'] > xgbcut]  # Filtrar los datos
+
+    Ns_csv = len(mypdf[mypdf.Td == "s"])
+    Nb_csv = len(mypdf[mypdf.Td == "b"])
+    fraction_csv_s = Ns_csv / factor
+    fraction_csv_b = Nb_csv / factor
+    pbTOfb = 1000  # factor conversión de pb a fb
+    IntLumi = 3000  # Luminosidad integrada
+    alpha = XSs * pbTOfb * IntLumi / factor # Factor de escalamiento de los eventos generados a eventos calculados de la señal
+    beta = XSb * pbTOfb * IntLumi / factor  # Factor de escalamiento de los eventos generados a eventos calculados del background
+
+    Sig = (alpha * Ns_csv) / (math.sqrt((alpha * Ns_csv) + (beta * Nb_csv)))
+    return Sig
+
+def main():
+    global results_df
+    data = df_shuffled  # Cargar los datos desde un archivo CSV
+
+    Sigval = []
+    XGBval = []
+    xgbi = 0.5
+    for jj in range(499):
+        Sigval.append(CalSig(data, xgbi,XSsignal,XSbackground,factor))
+        XGBval.append(xgbi)
+        xgbi = xgbi + 0.001
+
+    # Crear un DataFrame con los resultados
+    results_df = pd.DataFrame({
+        'XGB_cut': XGBval,
+        'Significance': Sigval
+    })
+
+    # Guardar el DataFrame en un archivo CSV
+    sig_nom=input("Ingrese el nombre que ahora guardara los calculos de la significancia")
+    results_df.to_csv(sig_nom + '.csv', index=False)
+    #print(f"Resultados guardados en 'significance_results.csv")
+
+if __name__ == '__main__':
+    main()
+# Encontrar la fila con la significancia más alta
+max_significance_row = results_df.loc[results_df['Significance'].idxmax()]
+
+# Convertir la fila a una tupla
+max_significance_tuple = tuple(max_significance_row)
+print(max_significance_tuple)
 
