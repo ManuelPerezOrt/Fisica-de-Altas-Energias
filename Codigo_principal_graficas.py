@@ -33,7 +33,8 @@ mimetypes.add_type('csv', '.csv')
 signal_path=input( 'Ingrese el path de su archivo SIGNAL, puede ser de los formatos .lhco o .csv: \n')
 
 pathsback = []
-evit=input("Si ya tiene un bg con la base de datos calculada coloque 1 y el path que colocara a continuacion sera ese, de caso contrario ignore este mensaje(pulse enter):") 
+evit=int(input("Si ya tiene un bg con la base de datos calculada coloque 1 y el path que colocara a continuacion sera ese, de caso contrario ignore este mensaje(pulse enter): ")) 
+
 print('Ingrese el path de su archivo de BACKGROUND, puede ser de los formatos .lhco o .csv: (presione enter para continuar) \n')
 while True:
 	paths = input('Path: ')
@@ -57,25 +58,20 @@ for i in pathsback:
     # Concatenar las bases de datos
     dfbg = pd.concat([dfbg, data], ignore_index=True)
 
-
 mask = dfbg['#'] == 0
 # Actualiza todas las columnas excepto la columna '#'
 dfbg.loc[mask, dfbg.columns != '#'] = 10.0
 #data.loc[data['#'] == 0, :] = float('10')
 filtered_dfbg = pd.DataFrame(dfbg)
 
-
-
 mime_type, encoding = mimetypes.guess_type(signal_path)
-
 # Verificamos si el tipo de archivo es 'lhco'
 if mime_type == 'lhco':
     dfsg=pd.read_csv(signal_path,sep=r'\s+')
 
 print('\n')
 if mime_type == 'csv':
-	dfsg=pd.read_csv(signal_path)
-
+    dfsg=pd.read_csv(signal_path)
 mask = dfsg['#'] == 0
 # Actualiza todas las columnas excepto la columna '#'
 dfsg.loc[mask, dfsg.columns != '#'] = 10.0
@@ -112,6 +108,7 @@ particulas_dict = {
     'muon': 2,
     'tau': 3,
     'jet': 4,
+    'MET': 6,
     'positron': 5,
     'antimuon': 7
 }
@@ -227,7 +224,8 @@ def filtrar_eventos(df, num_list):
     return pd.DataFrame(event_indices)
 
 # Aplicar la función a ambos DataFrames
-filtered_dfbg = filtrar_eventos(filtered_dfbg, lista_num_mod)
+if evit != 1:
+	filtered_dfbg = filtrar_eventos(filtered_dfbg, lista_num_mod)
 filtered_dfsg = filtrar_eventos(filtered_dfsg, lista_num_mod)
 #print(filtered_dfbg)
 #print(filtered_dfsg)
@@ -282,17 +280,18 @@ def eta_part(evento,listapart):
     if not prt.empty:
     	posicion=listapart[1]-1
     	eta_prt = prt.iloc[posicion]['eta']
-    return eta_prt
+    	return eta_prt
+    return None
 
 def pt_part(evento,listapart):
     prt=evento[evento['typ']==listapart[0]]
     if listapart[0] in [1, 2]:
         prt = prt[prt['ntrk'] == listapart[2]]
     if not prt.empty:
-    	posicion=listapart[1]-1
-    	pt_prt = prt.iloc[posicion]['pt']
-    return pt_prt
-
+        posicion=listapart[1]-1
+        pt_prt = prt.iloc[posicion]['pt']
+        return pt_prt
+    return None
 #MASA TRANSVERSA
 def m_trans(evento,comb):
     # Filtrar las partículas
@@ -314,10 +313,9 @@ def m_trans(evento,comb):
         phi_prt2 = prt2.iloc[posicion2]['phi']
         pt1_x,pt1_y,pt1_z=momentum_vector(pt_prt1, phi_prt1,eta_prt1 )
         pt2_x,pt2_y,pt2_z=momentum_vector(pt_prt2, phi_prt2,eta_prt2 )
-        m_trans_sqrt=(np.sqrt(pt1_x**2 + pt1_y**2 ) + np.sqrt(pt2_x**2 + pt2_y**2 ))**2 -
-                    (pt1_x + pt2_x )**2 - (pt1_y + pt2_y )**2
-        if m_trans_squared < 0:
-            m_trans_squared=0
+        m_trans_sqrt=(np.sqrt(pt1_x**2 + pt1_y**2 ) + np.sqrt(pt2_x**2 + pt2_y**2 ))**2 -(pt1_x + pt2_x )**2 - (pt1_y + pt2_y )**2
+        if m_trans_sqrt < 0:
+            m_trans_sqrt=0
         # print(m_trans)
         m_trans=np.sqrt(m_trans_sqrt)
         return  m_trans
@@ -386,7 +384,7 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
                     masainv_cuartetos.append(m_inv(event_df, i))
                 for i in combinaciones_trios:
                     masainv_trios.append(m_inv(event_df, i))
-                for i in lista_num:
+                for i in lista_num_mod:
                     pt.append(pt_part(event_df, i))
                     eta.append(eta_part(event_df, i))
                     phi.append(phi_part(event_df, i))
@@ -405,7 +403,7 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
             masainv_cuartetos.append(m_inv(event_df, i))
         for i in combinaciones_trios:
             masainv_trios.append(m_inv(event_df, i))
-        for i in lista_num:
+        for i in lista_num_mod:
             pt.append(pt_part(event_df, i))
             eta.append(eta_part(event_df, i))
             phi.append(phi_part(event_df, i))
@@ -481,14 +479,15 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
 # Aplicar la función a ambos DataFrames
 csv_sig = calculos_eventos(filtered_dfsg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
 csv_sig['Td'] = "s"
-
-csv_bg = calculos_eventos(filtered_dfbg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
-csv_bg['Td'] = "b"
-name_bg=input("Inserte el nombre con el que quiere guardar los resultados del bg , este le puede ser util para acelerar el proceso si desea analizar otro caso con el mismo bg")
-name_bg=name_bg + ".csv"
-csv_bg.to_csv(name_bg, index=True)
-print("Se guardo los analisis para el BG por si se utilizará en proximos calculos para que no sea necesario volver a calcular, se guardo con el nombre BGprocess.csv")
-
+if evit != 1 :
+	csv_bg = calculos_eventos(filtered_dfbg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
+	csv_bg['Td'] = "b"
+	name_bg=input("Inserte el nombre con el que quiere guardar los resultados del bg , este le puede ser util para acelerar el 											proceso si desea analizar otro caso con el mismo bg: ")
+	name_bg=name_bg + ".csv"
+	csv_bg.to_csv(name_bg, index=False)
+	print(f"Se guardo los analisis para el BG por si se utilizará en proximos calculos para que no sea necesario volver a calcular, se guardo con el nombre: {name_bg}")
+if evit == 1 :
+	csv_bg=filtered_dfbg
 df_combined = pd.concat([csv_bg, csv_sig], ignore_index=False)
 
 # Mantener la numeración de la primera columna
@@ -497,13 +496,15 @@ df_combined.index += 1
 #print(df_combined)
 
 # Guardar la base de datos combinada
-df_combined.to_csv(Final_name, index=True)
+df_combined = df_combined.rename_axis('Evento').reset_index()
+df_combined.to_csv(Final_name, index=False)
 
 print(f'El archivo fue creado con el nombre: {Final_name}')
 print("Ahora se iniciará con el proceso de entrenamiento de BDT, el archivo final se sobreescribira sobre el que ya fue creado")
 #INICIA PROCESO DE GRAFICADO
-signal_df = csv_sig
-background_df = csv_bg
+results_df = pd.read_csv(Final_name)
+signal_df = results_df[results_df['Td'] == 's']
+background_df = results_df[results_df['Td'] == 'b']
 # Definir las columnas a verificar (excluyendo la primera y la última columna)
 columns_to_check = df_combined.columns[1:-1]
 
@@ -551,7 +552,7 @@ while True:
 
         # Crear el histograma para la columna seleccionada con el límite y guardar la gráfica
         crear_histograma(signal_df_filtrado, background_df_filtrado, columna_seleccionada, columna_seleccionada, 'Número de Eventos', f'{columna_seleccionada} vs Número de Eventos', nombre_archivo)
-print(INICIA PROCESO PARA BDT)
+print("INICIA PROCESO PARA BDT")
 #INICIA PROCESO PARA BDT
 # Separar la primera fila (títulos de las columnas)
 column_titles = df_combined.iloc[0]
