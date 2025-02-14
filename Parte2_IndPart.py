@@ -1,103 +1,192 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from itertools import combinations
-import numpy as np
+import pandas as pd
 
-# Función para mostrar el cuadro de entrada
-def ingresar_particulas():
-    def agregar_particula():
-        particula = entry_particula.get()
-        if particula:
-            lista_particulas.append(particula)
-            listbox.insert(tk.END, particula)
-            entry_particula.delete(0, tk.END)
+# Diccionarios de partículas
+particulas_dict = {
+    'photon': 0,
+    'electron': 1,
+    'muon': 2,
+    'tau': 3,
+    'jet': 4,
+    'MET': 6,
+    'positron': 5,
+    'antimuon': 7
+}
+particulas_dict_inv = {v: k for k, v in particulas_dict.items()}
 
-    def procesar():
-        if not lista_particulas:
-            messagebox.showerror("Error", "Debe ingresar al menos una partícula.")
-            return
-        
-        lista = [(int(e.split()[0]), e.split()[1]) for e in lista_particulas]
-        lista_num = []
-        for i in lista:
-            lista2 = list(i)
-            particle_dict = {'photon': 0, 'electron': 1, 'muon': 2, 'tau': 3, 'jet': 4}
-            lista2[1] = particle_dict.get(lista2[1], 5)  # Si no es una partícula válida, se asigna un código 5
-            lista_num.append(tuple(lista2))
+# Lista para almacenar partículas
+lista = []
 
-        lista_num.append((1, 6))  # Para algún caso especial de MET
-        num_list = [t[1] for t in lista_num]
+# Funciones para la lógica del programa
+def expand_and_swap_tuples(tuples_list):
+    expanded_list = []
+    for t in tuples_list:
+        for i in range(1, t[0] + 1):
+            expanded_list.append((t[1], i))
+    return expanded_list
 
-        combinaciones_pares = list(combinations(lista_num, 2))
-        combinaciones_trios = list(combinations(lista_num, 3))
-        combinaciones_cuartetos = list(combinations(lista_num, 4))
+def determinar_valor(x):
+    if x == 6:
+        return 0
+    elif x == 1:
+        return -1
+    elif x == 2:
+        return -1
+    elif x == 0:
+        return 0
+    elif x == 3:
+        return 0
+    elif x == 4:
+        return 0
+    elif x == 5:
+        return 1
+    elif x == 7:
+        return 1
+    else:
+        return 0
 
-        # Mostramos las combinaciones en el cuadro de texto
-        resultado = f"Combinaciones de pares: {combinaciones_pares}\nCombinaciones de tríos: {combinaciones_trios}\nCombinaciones de cuartetos: {combinaciones_cuartetos}"
-        text_resultado.config(state=tk.NORMAL)
-        text_resultado.delete(1.0, tk.END)
-        text_resultado.insert(tk.END, resultado)
-        text_resultado.config(state=tk.DISABLED)
+def transformar_tuplas(tuplas):
+    resultado = []
+    for t in tuplas:
+        particula = particulas_dict_inv[t[0]]
+        if t[0] == 6:
+            resultado.append((particula,))
+        else:
+            if t[1] == 1:
+                referencia = 'leading'
+            elif t[1] == 2:
+                referencia = 'subleading'
+            elif t[1] == 3:
+                referencia = 'tertiary'
+            elif t[1] == 4:
+                referencia = 'quaternary'
+            elif t[1] == 5:
+                referencia = 'quinary'
+            resultado.append((particula, referencia))
+    return resultado
 
-    # Ventana principal de ingreso de partículas
-    ventana = tk.Tk()
-    ventana.title("Ingreso de partículas")
+def add_particle():
+    cantidad = int(entry_quantity.get())
+    particula = particle_choice.get()
+    lista.append((cantidad, particula))
+    lista_box.insert(tk.END, f"{cantidad} {particula}")
+
+def remove_selected_particle():
+    selected_indices = lista_box.curselection()
+    for index in reversed(selected_indices):
+        lista.pop(index)
+        lista_box.delete(index)
+
+def analyze_particles():
+    lista_num = [(cantidad, particulas_dict[particula]) for cantidad, particula in lista]
+    lista_num.append((1, 6))
+
+    lista_num = expand_and_swap_tuples(lista_num)
     
-    # Área de texto para mostrar los mensajes
-    text_instrucciones = tk.Text(ventana, height=10, width=70)
-    text_instrucciones.pack(pady=10)
-    text_instrucciones.insert(tk.END, "Por favor, ingrese las partículas que desea analizar en el estado final.\n")
-    text_instrucciones.insert(tk.END, "Primero, coloque el número de partículas (n) seguido del nombre de la partícula.\n")
-    text_instrucciones.insert(tk.END, "Las partículas disponibles son: photon, electron, muon, tau, jet.\n\n")
-    text_instrucciones.insert(tk.END, "Ejemplo: 2 photon\n")
-    text_instrucciones.config(state=tk.DISABLED)
-
-    entry_particula = tk.Entry(ventana)
-    entry_particula.pack(pady=5)
+    lista_num_names = transformar_tuplas(lista_num)
+    comb_pares_names = list(combinations(lista_num_names, 2))
+    comb_trios_names = list(combinations(lista_num_names, 3))
+    comb_cuartetos_names = list(combinations(lista_num_names, 4))
     
-    boton_agregar = tk.Button(ventana, text="Agregar partícula", command=agregar_particula)
-    boton_agregar.pack(pady=5)
+    lista_num = [(x, y, determinar_valor(x)) for (x, y) in lista_num]
+    lista_num_mod = [(1 if x == 5 else 2 if x == 7 else x, y, z) for (x, y, z) in lista_num]
     
-    listbox = tk.Listbox(ventana, height=10, width=40)
-    listbox.pack(pady=10)
+    global combinaciones_pares, combinaciones_trios, combinaciones_cuartetos
+    combinaciones_pares = list(combinations(lista_num_mod, 2))
+    combinaciones_trios = list(combinations(lista_num_mod, 3))
+    combinaciones_cuartetos = list(combinations(lista_num_mod, 4))
 
-    boton_procesar = tk.Button(ventana, text="Procesar partículas", command=procesar)
-    boton_procesar.pack(pady=10)
+    comb_pares_listbox.delete(0, tk.END)
+    for comb in combinaciones_pares:
+        comb_pares_listbox.insert(tk.END, comb)
 
-    lista_particulas = []
+    comb_trios_listbox.delete(0, tk.END)
+    for comb in combinaciones_trios:
+        comb_trios_listbox.insert(tk.END, comb)
 
-    # Área de texto para mostrar el resultado de las combinaciones
-    text_resultado = tk.Text(ventana, height=10, width=70)
-    text_resultado.pack(pady=10)
-    text_resultado.config(state=tk.DISABLED)
+    comb_cuartetos_listbox.delete(0, tk.END)
+    for comb in combinaciones_cuartetos:
+        comb_cuartetos_listbox.insert(tk.END, comb)
 
-    ventana.mainloop()
+def overwrite_list(listbox, comb_list):
+    selected_indices = listbox.curselection()
+    selected_combinations = [comb_list[i] for i in selected_indices]
+    comb_list.clear()
+    comb_list.extend(selected_combinations)
+    listbox.delete(0, tk.END)
+    for comb in comb_list:
+        listbox.insert(tk.END, comb)
+    messagebox.showinfo("Éxito", "La lista ha sido sobrescrita con las selecciones realizadas.")
 
-# Función para calcular el vector de momento
-def momentum_vector(pt, phi, eta):
-    pt_x, pt_y, pt_z = pt * np.cos(phi), pt * np.sin(phi), pt * np.sinh(eta)
-    return pt_x, pt_y, pt_z
+# Crear ventana
+root = tk.Tk()
+root.title("Análisis de Partículas")
+root.geometry("600x800")
 
-# Función para calcular la distancia DeltaR
-def Deltar(evento, comb):
-    prt1 = evento[evento['typ'] == comb[0][0]]
-    prt2 = evento[evento['typ'] == comb[1][0]]
-    if not prt1.empty and not prt2.empty:
-        eta_prt1, eta_prt2 = prt1.iloc[comb[0][1] - 1]['eta'], prt2.iloc[comb[1][1] - 1]['eta']
-        phi_prt1, phi_prt2 = prt1.iloc[comb[0][1] - 1]['phi'], prt2.iloc[comb[1][1] - 1]['phi']
-        return np.sqrt((eta_prt1 - eta_prt2) ** 2 + (phi_prt1 - phi_prt2) ** 2)
-    return None
+# Widgets
+tk.Label(root, text="Ingrese la cantidad y tipo de partícula:").pack()
 
-# Función para calcular la masa transversal
-def m_trans(evento, comb):
-    prt1 = evento[evento['typ'] == comb[0][0]]
-    prt2 = evento[evento['typ'] == comb[1][0]]
-    if not prt1.empty and not prt2.empty:
-        pt1_x, pt1_y, pt1_z = momentum_vector(prt1.iloc[comb[0][1] - 1]['pt'], prt1.iloc[comb[0][1] - 1]['phi'], prt1.iloc[comb[0][1] - 1]['eta'])
-        pt2_x, pt2_y, pt2_z = momentum_vector(prt2.iloc[comb[1][1] - 1]['pt'], prt2.iloc[comb[1][1] - 1]['phi'], prt2.iloc[comb[1][1] - 1]['eta'])
-        m_trans = np.sqrt((np.sqrt(pt1_x ** 2 + pt1_y ** 2) + np.sqrt(pt2_x ** 2 + pt2_y ** 2)) ** 2 - (pt1_x + pt2_x) ** 2 - (pt1_y + pt2_y) ** 2)
-        return m_trans
-    return None
+frame_input = tk.Frame(root)
+frame_input.pack()
 
-# Llamamos a la interfaz para ingresar partículas
-ingresar_particulas()
+entry_quantity = tk.Entry(frame_input, width=10)
+entry_quantity.pack(side=tk.LEFT)
+particle_choice = tk.StringVar()
+particle_choice.set("photon")
+option_menu = tk.OptionMenu(frame_input, particle_choice, *particulas_dict.keys())
+option_menu.pack(side=tk.LEFT)
+
+add_button = tk.Button(frame_input, text="Añadir Partícula", command=add_particle)
+add_button.pack(side=tk.LEFT)
+
+remove_button = tk.Button(frame_input, text="Eliminar Selección", command=remove_selected_particle)
+remove_button.pack(side=tk.LEFT)
+
+frame_lista_box = tk.Frame(root)
+frame_lista_box.pack()
+
+scrollbar_lista = tk.Scrollbar(frame_lista_box, orient=tk.VERTICAL)
+scrollbar_lista.pack(side=tk.RIGHT, fill=tk.Y)
+
+lista_box = tk.Listbox(frame_lista_box, width=50, height=5, yscrollcommand=scrollbar_lista.set, selectmode=tk.MULTIPLE)
+lista_box.pack(side=tk.LEFT, fill=tk.BOTH)
+
+scrollbar_lista.config(command=lista_box.yview)
+
+# Formatted explanation text
+explanation_text = (
+    "La lista final de partículas numeradas tiene el formato: [(x, y, z)] donde:\n"
+    "- x  es el tipo de la partícula.\n"
+    "- y  su posición energética.\n"
+    "- z  su carga eléctrica."
+)
+tk.Label(root, text=explanation_text, justify="left").pack(pady=10)
+
+analyze_button = tk.Button(root, text="Analizar", command=analyze_particles)
+analyze_button.pack()
+
+# Scrollable frames for combinations
+def create_scrollable_listbox(root, title):
+    frame = tk.Frame(root)
+    frame.pack()
+    tk.Label(frame, text=title).pack()
+    scrollbar = tk.Scrollbar(frame, orient=tk.VERTICAL)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    listbox = tk.Listbox(frame, width=50, height=5, yscrollcommand=scrollbar.set, selectmode=tk.MULTIPLE)
+    listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+    scrollbar.config(command=listbox.yview)
+    return listbox, frame
+
+comb_pares_listbox, frame_comb_pares = create_scrollable_listbox(root, "Combinaciones de pares:")
+tk.Button(frame_comb_pares, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_pares_listbox, combinaciones_pares)).pack()
+
+comb_trios_listbox, frame_comb_trios = create_scrollable_listbox(root, "Combinaciones de tríos:")
+tk.Button(frame_comb_trios, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_trios_listbox, combinaciones_trios)).pack()
+
+comb_cuartetos_listbox, frame_comb_cuartetos = create_scrollable_listbox(root, "Combinaciones de cuartetos:")
+tk.Button(frame_comb_cuartetos, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_cuartetos_listbox, combinaciones_cuartetos)).pack()
+
+# Ejecutar la aplicación
+root.mainloop()
