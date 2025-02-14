@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import csv
 import mimetypes
+import math
 import sys
 from tqdm import tqdm
 import time
@@ -29,11 +30,12 @@ from datetime import datetime
 
 mimetypes.add_type('lhco', '.lhco')
 mimetypes.add_type('csv', '.csv')
+
 # Ruta del archivo LHCO
 signal_path=input( 'Ingrese el path de su archivo SIGNAL, puede ser de los formatos .lhco o .csv: \n')
 
 pathsback = []
-evit=int(input("Si ya tiene un bg con la base de datos calculada coloque 1 y el path que colocara a continuacion sera ese, de caso contrario ignore este mensaje(pulse enter): ")) 
+evit=int(input("Si ya tiene un bg con la base de datos calculada coloque 1 y el path que colocara a continuacion sera ese, de caso contrario ingrese 0: ")) 
 
 print('Ingrese el path de su archivo de BACKGROUND, puede ser de los formatos .lhco o .csv: (presione enter para continuar) \n')
 while True:
@@ -61,7 +63,6 @@ for i in pathsback:
 mask = dfbg['#'] == 0
 # Actualiza todas las columnas excepto la columna '#'
 dfbg.loc[mask, dfbg.columns != '#'] = 10.0
-#data.loc[data['#'] == 0, :] = float('10')
 filtered_dfbg = pd.DataFrame(dfbg)
 
 mime_type, encoding = mimetypes.guess_type(signal_path)
@@ -75,11 +76,7 @@ if mime_type == 'csv':
 mask = dfsg['#'] == 0
 # Actualiza todas las columnas excepto la columna '#'
 dfsg.loc[mask, dfsg.columns != '#'] = 10.0
-#data.loc[data['#'] == 0, :] = float('10')
 filtered_dfsg = pd.DataFrame(dfsg)
-
-#print(filtered_dfbg)
-#print(filtered_dfsg)
 
 print('\n')
 
@@ -171,7 +168,6 @@ comb_pares_names = list(combinations(lista_num_names, 2))
 comb_trios_names = list(combinations(lista_num_names, 3))
 comb_cuartetos_names = list(combinations(lista_num_names, 4))
 lista_num = [(x, y, determinar_valor(x)) for (x, y) in lista_num]
-#num_list = [t[0] for t in lista_num]
 # Cambiar los valores de antimuon (7) a 2 y positron (5) a 1
 lista_num_mod = [(1 if x == 5 else 2 if x == 7 else x, y, z) for (x, y, z) in lista_num]
 #print(lista_num_mod)
@@ -184,8 +180,6 @@ combinaciones_cuartetos = list(combinations(lista_num_mod, 4))
 print("Combinaciones de pares:", combinaciones_pares)
 print("Combinaciones de tríos:", combinaciones_trios)
 print("Combinaciones de cuartetos:", combinaciones_cuartetos)
-#lista = pd.DataFrame(num_list, columns=['typ'])
-#print(lista)
 
 
 """
@@ -227,8 +221,8 @@ def filtrar_eventos(df, num_list):
 if evit != 1:
 	filtered_dfbg = filtrar_eventos(filtered_dfbg, lista_num_mod)
 filtered_dfsg = filtrar_eventos(filtered_dfsg, lista_num_mod)
-#print(filtered_dfbg)
-#print(filtered_dfsg)
+print("Ya se realizó el filtrado de ambos df")
+print("Inicia el proceso del cálculo para el df")
 #Funcion para no.jets
 def Num_jets(evento):
     jets=evento[evento['typ']== 4]
@@ -242,8 +236,6 @@ def Deltar(evento,comb):
     prt1 = evento[evento['typ'] == comb[0][0]]
     prt2 = evento[evento['typ']== comb[1][0]]
     if not prt1.empty and not prt2.empty:
-        # Obtener el pt del primer fotón y de la MET
-        #print(posicion1)
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
         if comb[0][0] in [1, 2]:
@@ -510,8 +502,10 @@ columns_to_check = df_combined.columns[1:-1]
 
 # Función para crear histogramas y guardar la gráfica
 def crear_histograma(df_signal, df_background, columna, xlabel, ylabel, title, filename=None):
-    plt.hist(df_signal[columna], weights=df_signal['Evento'], bins=50, edgecolor='black', alpha=0.5, label='Signal', density=True)
-    plt.hist(df_background[columna], weights=df_background['Evento'], bins=50, edgecolor='black', alpha=0.5, label='Background', density=True)
+        # Usar la primera columna para los pesos
+    primera_columna = df_signal.columns[0]
+    plt.hist(df_signal[columna], weights=df_signal[primera_columna], bins=50, edgecolor='black', alpha=0.5, label='Signal', density=True)
+    plt.hist(df_background[columna], weights=df_background[primera_columna], bins=50, edgecolor='black', alpha=0.5, label='Background', density=True)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
@@ -538,7 +532,7 @@ while True:
     # Preguntar al usuario si desea imponer un límite y guardar la gráfica
     imponer_limite = input("¿Desea imponer un límite y guardar la gráfica? (sí/no): ")
     
-    if imponer_limite.lower() == 'sí':
+    if imponer_limite.lower() == 'si':
         # Preguntar al usuario el límite para la columna seleccionada
         limite = float(input(f"Por favor, ingrese el límite para la columna {columna_seleccionada}: "))
 
@@ -551,7 +545,8 @@ while True:
         nombre_archivo = nombre_archivo + ".jpg"
 
         # Crear el histograma para la columna seleccionada con el límite y guardar la gráfica
-        crear_histograma(signal_df_filtrado, background_df_filtrado, columna_seleccionada, columna_seleccionada, 'Número de Eventos', f'{columna_seleccionada} vs Número de Eventos', nombre_archivo)
+        name_graphic=input("Inserte el título que desea poner para la gráfica")
+        crear_histograma(signal_df_filtrado, background_df_filtrado, columna_seleccionada, columna_seleccionada, 'N.Events', name_graphic, nombre_archivo)
 print("INICIA PROCESO PARA BDT")
 #INICIA PROCESO PARA BDT
 # Separar la primera fila (títulos de las columnas)
@@ -598,7 +593,8 @@ def roc(test_x,test_y,train_x,train_y, model):
     plt.savefig(nombre)
 
 def plot_classifier_distributions(model, test, train, cols, print_params=False, params=None):
-
+    global _ks_back
+    global _ks_sign
     test_background = model.predict_proba(test.query('label==0')[cols])[:,1]
     test_signal     = model.predict_proba(test.query('label==1')[cols])[:,1]
     train_background= model.predict_proba(train.query('label==0')[cols])[:,1]
@@ -722,8 +718,7 @@ print('Fraction signal: {}'.format(len(df_shuffled[df_shuffled.Td == 's'])/(floa
 Sig_df = (df_shuffled[df_shuffled.Td == 's'])
 Bkg_df = (df_shuffled[df_shuffled.Td == 'b'])
 vars_for_train = Sig_df.columns
-cols_to_delete = ['Td']
-vars_for_train = vars_for_train.drop("Td")
+vars_for_train = vars_for_train.drop(["Td", "Evento"])
 print(vars_for_train)
 data4label   = df_shuffled[vars_for_train]
 signal4train = Sig_df[vars_for_train]
@@ -796,98 +791,97 @@ test = test_feat.assign(label=test_lab)
 train = train_feat.assign(label=train_lab)
 cols = vars_for_train
 #Calculo para los mejores hiperparametros
-manual_params = {
-    'colsample_bylevel': 0.8129556523950925,
-     'colsample_bynode': 0.6312324405171867,
-     'colsample_bytree': 0.6479261529614907,
-     'gamma': 6.0528983610080305,
-     'learning_rate': 0.1438821307939924,
-     #'max_depth': 5,
-     #'max_leaves': 15,
-     'max_leaves': 15,               
-     'max_depth': 5,
-     'min_child_weight': 1.385895334160164,
-     #'min_child_weight': 1,
-     'reg_alpha': 6.454459356576733,
-     'reg_lambda': 22.88928659795952,
-     'n_estimators':100
-}
-
-#Parameters close to manual parameters
-def objective(trial):
-    params = {
-        'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),  
-        'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
-        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
-        'gamma': trial.suggest_float('gamma', 5.5, 7), 
-        'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2), 
-        'max_leaves': trial.suggest_int('max_leaves', 10, 20), 
-        'max_depth': trial.suggest_int('max_depth', 4, 6), 
-        'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0), 
-        'reg_alpha': trial.suggest_float('reg_alpha', 6, 7), 
-        'reg_lambda': trial.suggest_float('reg_lambda', 22, 23), 
-        'n_estimators': trial.suggest_int('n_estimators', 90, 120) 
+_ks_back = 0
+_ks_sign = 0
+while _ks_back < 0.05 or _ks_sign < 0.05:
+    manual_params = {
+        'colsample_bylevel': 0.8129556523950925,
+         'colsample_bynode': 0.6312324405171867,
+         'colsample_bytree': 0.6479261529614907,
+         'gamma': 6.0528983610080305,
+         'learning_rate': 0.1438821307939924,
+         'max_leaves': 15,               
+         'max_depth': 5,
+         'min_child_weight': 1.385895334160164,
+         'reg_alpha': 6.454459356576733,
+         'reg_lambda': 22.88928659795952,
+         'n_estimators':100
     }
+
+    #Parameters close to manual parameters
+    def objective(trial):
+        params = {
+            'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),  
+            'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
+            'gamma': trial.suggest_float('gamma', 5.5, 7), 
+            'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2), 
+            'max_leaves': trial.suggest_int('max_leaves', 10, 20), 
+            'max_depth': trial.suggest_int('max_depth', 4, 6), 
+            'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0), 
+            'reg_alpha': trial.suggest_float('reg_alpha', 6, 7), 
+            'reg_lambda': trial.suggest_float('reg_lambda', 22, 23), 
+            'n_estimators': trial.suggest_int('n_estimators', 90, 120) 
+        }
+        model = xgb.XGBClassifier(
+            objective='binary:logistic',
+            tree_method='hist',
+            **params
+        )
+        model.fit(train_feat[cols], train_lab)
+        preds = model.predict_proba(test_feat[cols])[:, 1]
+        return roc_auc_score(test_lab, preds)
+
+# including manual parameters as initial trial
+    study = optuna.create_study(direction='maximize')
+    study.enqueue_trial(manual_params)  
+    study.optimize(objective, n_trials=50) #optimizing
+
+#Print results
+    print("Best parameters:", study.best_trial.params)
+    print("Best score:", study.best_trial.value)
+# Guardar los mejores hiperparámetros
+    best_hyperparams = study.best_trial.params
+
+# Fill missing values in training and testing data with the mean of the training features
+    train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
+    test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
+
+# Create evaluation set with consistent feature columns
+    eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
+
+# Asignar automáticamente los mejores hiperparámetros en el modelo
     model = xgb.XGBClassifier(
         objective='binary:logistic',
         tree_method='hist',
-        **params
+        **best_hyperparams
     )
-    model.fit(train_feat[cols], train_lab)
-    preds = model.predict_proba(test_feat[cols])[:, 1]
-    return roc_auc_score(test_lab, preds)
-
-# including manual parameters as initial trial
-study = optuna.create_study(direction='maximize')
-study.enqueue_trial(manual_params)  
-study.optimize(objective, n_trials=50) #optimizing
-
-#Print results
-print("Best parameters:", study.best_trial.params)
-print("Best score:", study.best_trial.value)
-# Guardar los mejores hiperparámetros
-best_hyperparams = study.best_trial.params
-
-# Fill missing values in training and testing data with the mean of the training features
-train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
-test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
-
-# Create evaluation set with consistent feature columns
-eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
-
-# Asignar automáticamente los mejores hiperparámetros en el modelo
-model = xgb.XGBClassifier(
-    objective='binary:logistic',
-    tree_method='hist',
-    **best_hyperparams
-)
-# Define and fit the XGBoost model with early stopping in the constructor
-modelv1 = xgb.XGBClassifier(
-    objective='binary:logistic',
-    tree_method='hist',
-    n_jobs=5,
-    max_leaves=best_hyperparams['max_leaves'],
-    max_depth=best_hyperparams['max_depth'],
-    learning_rate=best_hyperparams['learning_rate'],
-    reg_alpha=best_hyperparams['reg_alpha'],
-    reg_lambda=best_hyperparams['reg_lambda'],
-    min_child_weight=best_hyperparams['min_child_weight'],
-    colsample_bylevel=best_hyperparams['colsample_bylevel'],
-    colsample_bynode=best_hyperparams['colsample_bynode'],
-    colsample_bytree=best_hyperparams['colsample_bytree'],
-    gamma=best_hyperparams['gamma'],
-    n_estimators=best_hyperparams['n_estimators'],
-    early_stopping_rounds=10
-)
-
-# Fit the model with the corrected eval_set and verbose turned off
-modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
-
-#Inicia los resultados del modelo 
-fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols = cols, print_params=False)
-#ax.set_title(r'Total sample size $\approx$ '+str(len(train) + len(test))+' optimized')
+    # Define and fit the XGBoost model with early stopping in the constructor
+    modelv1 = xgb.XGBClassifier(
+        objective='binary:logistic',
+        tree_method='hist',
+        n_jobs=5,
+        max_leaves=best_hyperparams['max_leaves'],
+        max_depth=best_hyperparams['max_depth'],
+        learning_rate=best_hyperparams['learning_rate'],
+        reg_alpha=best_hyperparams['reg_alpha'],
+        reg_lambda=best_hyperparams['reg_lambda'],
+        min_child_weight=best_hyperparams['min_child_weight'],
+        colsample_bylevel=best_hyperparams['colsample_bylevel'],
+        colsample_bynode=best_hyperparams['colsample_bynode'],
+        colsample_bytree=best_hyperparams['colsample_bytree'],
+        gamma=best_hyperparams['gamma'],
+        n_estimators=best_hyperparams['n_estimators'],
+        early_stopping_rounds=10
+    )
+    
+    # Fit the model with the corrected eval_set and verbose turned off
+    modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
+    fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols = cols, print_params=False)
+    #ax.set_title(r'Total sample size $\approx$ '+str(len(train) + len(test))+' optimized')
+    print(f'Background(Ks-pval): {_ks_back}')
+    print(f'Signal(Ks-pval): {_ks_sign}')
 name_dist=input("Inserte el nombre con que desea guardar la grafica que sera creada como el resultado del clasificador: ")
-
 plt.savefig(name_dist + '.png')
 #plt.savefig('classifier_distribution.pdf')
 plt.show()
@@ -930,8 +924,8 @@ b_events = df_shuffled[df_shuffled['Td'] == "b"].head(factor)  #specified number
 # Combining filtered signal and background datasets for training
 df_shuffled = pd.concat([s_events, b_events], ignore_index=True)
 
-XSsignal = int(input("Ingrese la cross section de la señal en pb")) # Sección eficaz de la señal
-XSbackground = int(input("Ingrese la cross section del background en pb"))  # Sección eficaz del background
+XSsignal = float(input("Ingrese la cross section de la señal en pb")) # Sección eficaz de la señal
+XSbackground = float(input("Ingrese la cross section del background en pb"))  # Sección eficaz del background
 def CalSig(mypdf, xgbcut,XSs,XSb):
     mypdf = mypdf[mypdf['XGB'] > xgbcut]  # Filtrar los datos
 
@@ -944,7 +938,14 @@ def CalSig(mypdf, xgbcut,XSs,XSb):
     alpha = XSs * pbTOfb * IntLumi / factor # Factor de escalamiento de los eventos generados a eventos calculados de la señal
     beta = XSb * pbTOfb * IntLumi / factor  # Factor de escalamiento de los eventos generados a eventos calculados del background
 
-    Sig = (alpha * Ns_csv) / (math.sqrt((alpha * Ns_csv) + (beta * Nb_csv)))
+    try:
+        Sig = (alpha * Ns_csv) / (math.sqrt((alpha * Ns_csv) + (beta * Nb_csv)))
+    except ZeroDivisionError:
+        print("División por cero detectada. Continuando con el siguiente cálculo.")
+        Sig = float(0)  # O cualquier valor que consideres apropiado para manejar el error
+    print('Number of signal events: {}'.format(len(mypdf[mypdf.Td == 's'])))
+    print('Number of background events: {}'.format(len(mypdf[mypdf.Td == 'b'])))
+    print(f'La significancia obtenida es :{Sig},con un corte sobre XGB en :{xgbcut}')
     return Sig
 
 def main():
@@ -955,7 +956,7 @@ def main():
     XGBval = []
     xgbi = 0.5
     for jj in range(499):
-        Sigval.append(CalSig(data, xgbi,XSsignal,XSbackground,factor))
+        Sigval.append(CalSig(data, xgbi,XSsignal,XSbackground))
         XGBval.append(xgbi)
         xgbi = xgbi + 0.001
 
