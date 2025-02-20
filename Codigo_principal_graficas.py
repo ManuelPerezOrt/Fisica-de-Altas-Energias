@@ -83,7 +83,7 @@ print('\n')
 print("Por favor, ingrese las partículas que desea analizar en el estado final.")
 print("Primero, coloque el número de partículas (n) seguido del nombre de la partícula.")
 print("Las partículas disponibles son: a(photon), e-(electron), e+(positron), mu+(antimuon), mu-(muon), t(tau), j(jet).\n")
-print("Ejemplo: 2 a \n"
+print("Ejemplo: 2 a \n")
 
 # Solicitar entrada del usuario
 lista = []
