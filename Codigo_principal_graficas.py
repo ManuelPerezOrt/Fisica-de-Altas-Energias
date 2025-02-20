@@ -82,8 +82,8 @@ print('\n')
 
 print("Por favor, ingrese las partículas que desea analizar en el estado final.")
 print("Primero, coloque el número de partículas (n) seguido del nombre de la partícula.")
-print("Las partículas disponibles son: photon, electron, positron, antimuon, muon, tau, jet.\n")
-print("Ejemplo: 2 photon\n")
+print("Las partículas disponibles son: a(photon), e-(electron), e+(positron), mu+(antimuon), mu-(muon), t(tau), j(jet).\n")
+print("Ejemplo: 2 a \n"
 
 # Solicitar entrada del usuario
 lista = []
@@ -100,14 +100,15 @@ lista = [(int(e.split()[0]), e.split()[1]) for e in lista]
 
 # Convertir nombres de partículas a números
 particulas_dict = {
-    'photon': 0,
-    'electron': 1,
-    'muon': 2,
-    'tau': 3,
-    'jet': 4,
+    'a': 0,
+    'e-': 1,
+    'mu-': 2,
+    't': 3,
+    'j': 4,
     'MET': 6,
-    'positron': 5,
-    'antimuon': 7
+    'e+': 5,
+    'mu+': 7,
+    'jb':8
 }
 particulas_dict_inv = {v: k for k, v in particulas_dict.items()}
 lista_num = [(cantidad, particulas_dict[particula]) for cantidad, particula in lista]
