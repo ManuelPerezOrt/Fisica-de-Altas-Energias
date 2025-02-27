@@ -292,7 +292,12 @@ def phi_part(evento, listapart):
     # Condición extra para typ 1 o 2
     if listapart[0] in [1, 2]:
         prt = prt[prt['ntrk'] == listapart[2]]
-    
+    # Condición extra para typ 4
+    if listapart[0] == 4:
+        if listapart[2] == 0:
+            prt = prt[prt['btag'] == listapart[2]]
+        elif listapart[2] == 1:
+            prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
         posicion = listapart[1] - 1
         phi_prt = prt.iloc[posicion]['phi']
@@ -305,6 +310,12 @@ def eta_part(evento,listapart):
     prt=evento[evento['typ']==listapart[0]]
     if listapart[0] in [1, 2]:
         prt = prt[prt['ntrk'] == listapart[2]]
+        # Condición extra para typ 4
+    if listapart[0] == 4:
+        if listapart[2] == 0:
+            prt = prt[prt['btag'] == listapart[2]]
+        elif listapart[2] == 1:
+            prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
     	posicion=listapart[1]-1
     	eta_prt = prt.iloc[posicion]['eta']
@@ -315,6 +326,12 @@ def pt_part(evento,listapart):
     prt=evento[evento['typ']==listapart[0]]
     if listapart[0] in [1, 2]:
         prt = prt[prt['ntrk'] == listapart[2]]
+        # Condición extra para typ 4
+    if listapart[0] == 4:
+        if listapart[2] == 0:
+            prt = prt[prt['btag'] == listapart[2]]
+        elif listapart[2] == 1:
+            prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
         posicion=listapart[1]-1
         pt_prt = prt.iloc[posicion]['pt']
@@ -329,6 +346,17 @@ def m_trans(evento,comb):
         prt1 = prt1[prt1['ntrk'] == comb[0][2]]
     if comb[1][0] in [1, 2]:
         prt2 = prt2[prt2['ntrk'] == comb[1][2]]
+        # Condición extra para typ 4
+    if comb[0][0] == 4:
+            if comb[0][2] == 0:
+                prt1 = prt1[prt1['btag'] == comb[0][2]]
+            elif comb[0][2] == 1:
+                prt1 = prt1[prt1['btag'].isin([1, 2])] 
+    if comb[1][0] == 4:
+            if comb[1][2] == 0:
+                prt2 = prt2[prt2['btag'] == comb[1][2]]
+            elif comb[1][2] == 1:
+                prt2 = prt2[prt2['btag'].isin([1, 2])]
     # Asegurarse de que hay al menos un fotón y una MET en el evento
     if not prt1.empty and not prt2.empty:
         posicion1=comb[0][1]-1
@@ -357,6 +385,13 @@ def m_inv(evento, comb):
     for i, c in enumerate(comb):
         if c[0] in [1, 2]:
             prt[i] = prt[i][prt[i]['ntrk'] == c[2]]
+        # Condición extra para typ 4
+    for i, c in enumerate(comb):
+        if c[0] == 4:
+            if c[2] == 0:
+                prt[i] = prt[i][prt[i]['btag'] == c[2]]
+            elif c[2] == 1:
+                prt[i] = prt[i][prt[i]['btag'].isin([1, 2])]    
     
     if all(not p.empty for p in prt):
         posiciones = [c[1] - 1 for c in comb]
