@@ -19,64 +19,40 @@ signal_df = None
 background_df = None
 df_combined = None
 columns_to_check = []
+lista_num_names = []
+lista_num_mod = []
+lista_num = []
+comb_pares_names = []
+comb_trios_names = []
+comb_cuartetos_names = []
+combinaciones_pares = []
+combinaciones_trios = []
+combinaciones_cuartetos = []
+
 
 # Agregar tipos de archivos
 mimetypes.add_type('lhco', '.lhco')
 mimetypes.add_type('csv', '.csv')
 
 def select_signal_file():
-    filepath1 = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
-    if filepath1:
-        signal_listbox.insert(tk.END, filepath1)
+    filepath = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
+    if filepath:
+        signal_listbox.insert(tk.END, filepath)
 
 def add_background_file():
-    filepath2 = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
-    if filepath2:
-        background_listbox.insert(tk.END, filepath2)
-
-def remove_selected_background():
-    selected_indices1 = background_listbox.curselection()
-    for index in reversed(selected_indices1):
-        background_listbox.delete(index)
+    filepath = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
+    if filepath:
+        background_listbox.insert(tk.END, filepath)
 
 def remove_selected_signal():
-    selected_indices2 = signal_listbox.curselection()
-    for index in reversed(selected_indices2):
+    selected_indices = signal_listbox.curselection()
+    for index in reversed(selected_indices):
         signal_listbox.delete(index)
-
-def generate_background_csv():
-    global filtered_dfbg
-    background_paths = background_listbox.get(0, tk.END)
-
-    if background_paths:
-        dfbg = pd.DataFrame()
-        for i in background_paths:
-            mime_type, encoding = mimetypes.guess_type(i)
-            if mime_type == 'lhco':  # Asumiendo que los archivos .lhco son tipo 'text/plain'
-                data = pd.read_csv(i, sep=r'\s+')
-            elif mime_type == 'csv':
-                data = pd.read_csv(i)
-            else:
-                messagebox.showwarning("Advertencia", f"Tipo de archivo no soportado: {i}")
-                continue  # Si el archivo no es LHCO o CSV, lo omite
-
-            dfbg = pd.concat([dfbg, data], ignore_index=True)
-
-        # Filtrar eventos con '# == 0'
-        if '#' in dfbg.columns:
-            mask = dfbg['#'] == 0
-            dfbg.loc[mask, dfbg.columns != '#'] = 10.0
-            filtered_dfbg = dfbg.copy()
-        else:
-            messagebox.showwarning("Advertencia", "La columna '#' no existe en los datos de BACKGROUND")
-
-        # Guardar el CSV
-        save_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
-        if save_path:
-            filtered_dfbg.to_csv(save_path, index=False)
-            messagebox.showinfo("Éxito", f"Archivo de BACKGROUND guardado en: {save_path}")
-    else:
-        messagebox.showwarning("Advertencia", "No se seleccionaron archivos de BACKGROUND.")
+        
+def remove_selected_background():
+    selected_indices = background_listbox.curselection()
+    for index in reversed(selected_indices):
+        background_listbox.delete(index)
 
 def generate_signal_csv():
     global filtered_dfsg
@@ -112,8 +88,42 @@ def generate_signal_csv():
     else:
         messagebox.showwarning("Advertencia", "No se seleccionaron archivos de SIGNAL.")
 
+def generate_background_csv():
+    global filtered_dfbg
+    background_paths = background_listbox.get(0, tk.END)
+
+    if background_paths:
+        dfbg = pd.DataFrame()
+        for i in background_paths:
+            mime_type, encoding = mimetypes.guess_type(i)
+            if mime_type == 'lhco':  # Asumiendo que los archivos .lhco son tipo 'text/plain'
+                data = pd.read_csv(i, sep=r'\s+')
+            elif mime_type == 'csv':
+                data = pd.read_csv(i)
+            else:
+                messagebox.showwarning("Advertencia", f"Tipo de archivo no soportado: {i}")
+                continue  # Si el archivo no es LHCO o CSV, lo omite
+
+            dfbg = pd.concat([dfbg, data], ignore_index=True)
+
+        # Filtrar eventos con '# == 0'
+        if '#' in dfbg.columns:
+            mask = dfbg['#'] == 0
+            dfbg.loc[mask, dfbg.columns != '#'] = 10.0
+            filtered_dfbg = dfbg.copy()
+        else:
+            messagebox.showwarning("Advertencia", "La columna '#' no existe en los datos de BACKGROUND")
+
+        # Guardar el CSV
+        save_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        if save_path:
+            filtered_dfbg.to_csv(save_path, index=False)
+            messagebox.showinfo("Éxito", f"Archivo de BACKGROUND guardado en: {save_path}")
+    else:
+        messagebox.showwarning("Advertencia", "No se seleccionaron archivos de BACKGROUND.")
+
 root = tk.Tk()
-root.title("Interfaz con Pestañas")
+root.title("Interfaz de Análisis de Eventos")
 root.geometry("500x400")
 
 # Crear estilo de botones
@@ -125,9 +135,9 @@ tab_control = ttk.Notebook(root)
 tab1 = ttk.Frame(tab_control)
 tab2 = ttk.Frame(tab_control)
 tab3 = ttk.Frame(tab_control)
-tab_control.add(tab1, text='Pestaña 1')
-tab_control.add(tab2, text='Pestaña 2')
-tab_control.add(tab3, text='Pestaña 3')
+tab_control.add(tab1, text='Carga de archivos')
+tab_control.add(tab2, text='Partículas a analizar')
+tab_control.add(tab3, text='Cálculo y Análisis')
 tab_control.pack(expand=1, fill='both')
 
 # Contenido de la primera pestaña
@@ -212,6 +222,13 @@ def expand_and_swap_tuples(tuples_list):
             expanded_list.append((t[1], i))
     return expanded_list
 
+#Esta función se utiliza para los nombres 
+def tupla_a_cadena(tupla):
+    if isinstance(tupla, tuple):
+        return '(' + ', '.join(tupla_a_cadena(sub) for sub in tupla) + ')'
+    else:
+        return str(tupla)
+
 def determinar_valor(x):
     if x == 6:
         return 0
@@ -219,7 +236,7 @@ def determinar_valor(x):
         return -1
     elif x in (0, 3, 4):
         return 0
-    elif x in (5, 7):
+    elif x in (5, 7, 8):
         return 1
     else:
         return 0
@@ -257,41 +274,52 @@ def analyze_particles():
 
     lista_num = expand_and_swap_tuples(lista_num)
     lista_num_names = transformar_tuplas(lista_num)
+    lista_num = [(x, y, determinar_valor(x)) for (x, y) in lista_num]
+    lista_num_mod = [(1 if x == 5 else 2 if x == 7 else x, y, z) for (x, y, z) in lista_num]    
+
     comb_pares_names = list(combinations(lista_num_names, 2))
     comb_trios_names = list(combinations(lista_num_names, 3))
     comb_cuartetos_names = list(combinations(lista_num_names, 4))
-
-    lista_num = [(x, y, determinar_valor(x)) for (x, y) in lista_num]
-    lista_num_mod = [(1 if x == 5 else 2 if x == 7 else x, y, z) for (x, y, z) in lista_num]
 
     combinaciones_pares = list(combinations(lista_num_mod, 2))
     combinaciones_trios = list(combinations(lista_num_mod, 3))
     combinaciones_cuartetos = list(combinations(lista_num_mod, 4))
 
     comb_pares_listbox.delete(0, tk.END)
-    for comb in combinaciones_pares:
+    for comb in comb_pares_names:
         comb_pares_listbox.insert(tk.END, comb)
 
     comb_trios_listbox.delete(0, tk.END)
-    for comb in combinaciones_trios:
+    for comb in comb_trios_names:
         comb_trios_listbox.insert(tk.END, comb)
 
     comb_cuartetos_listbox.delete(0, tk.END)
-    for comb in combinaciones_cuartetos:
+    for comb in comb_cuartetos_names:
         comb_cuartetos_listbox.insert(tk.END, comb)
 
 
-def overwrite_list(listbox, comb_list):
+def overwrite_list(listbox, comb_list, comb_tuples):
+
     selected_indices = listbox.curselection()
     selected_combinations = [comb_list[i] for i in selected_indices]
+
+    if not selected_combinations:
+        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        return
+
+    # Refrescar la lista en la interfaz
     comb_list.clear()
     comb_list.extend(selected_combinations)
+    comb_tuples.clear()
+    comb_tuples.extend(selected_combinations)
+
     listbox.delete(0, tk.END)
     for comb in comb_list:
         listbox.insert(tk.END, comb)
+
     messagebox.showinfo("Éxito", "La lista ha sido sobrescrita con las selecciones realizadas.")
 
-tk.Label(tab2, text="Ingrese la cantidad y tipo de partícula:").pack()
+tk.Label(tab2, text="Ingrese la cantidad y tipo de partícula del estado final que deseas analizar:").pack()
 
 frame_input = tk.Frame(tab2)
 frame_input.pack()
@@ -299,14 +327,14 @@ frame_input.pack()
 entry_quantity = tk.Entry(frame_input, width=10)
 entry_quantity.pack(side=tk.LEFT)
 particle_choice = tk.StringVar()
-particle_choice.set("photon")
+particle_choice.set("a")
 option_menu = tk.OptionMenu(frame_input, particle_choice, *particulas_dict.keys())
 option_menu.pack(side=tk.LEFT)
 
 add_button = tk.Button(frame_input, text="Añadir Partícula", command=add_particle)
 add_button.pack(side=tk.LEFT)
 
-remove_button = tk.Button(frame_input, text="Eliminar Selección", command=remove_selected_particle)
+remove_button = tk.Button(frame_input, text="Eliminar Partícula", command=remove_selected_particle)
 remove_button.pack(side=tk.LEFT)
 
 frame_lista_box = tk.Frame(tab2)
@@ -345,14 +373,15 @@ def create_scrollable_listbox(root, title):
     scrollbar.config(command=listbox.yview)
     return listbox, frame
 
+
 comb_pares_listbox, frame_comb_pares = create_scrollable_listbox(tab2, "Combinaciones de pares:")
-ttk.Button(frame_comb_pares, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_pares_listbox, combinaciones_pares)).pack()
+ttk.Button(frame_comb_pares, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_pares_listbox, comb_pares_names, combinaciones_pares)).pack()
 
 comb_trios_listbox, frame_comb_trios = create_scrollable_listbox(tab2, "Combinaciones de tríos:")
-ttk.Button(frame_comb_trios, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_trios_listbox, combinaciones_trios)).pack()
+ttk.Button(frame_comb_trios, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_trios_listbox, comb_trios_names, combinaciones_trios)).pack()
 
 comb_cuartetos_listbox, frame_comb_cuartetos = create_scrollable_listbox(tab2, "Combinaciones de cuartetos:")
-ttk.Button(frame_comb_cuartetos, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_cuartetos_listbox, combinaciones_cuartetos)).pack()
+ttk.Button(frame_comb_cuartetos, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_cuartetos_listbox, comb_cuartetos_names, combinaciones_cuartetos)).pack()
 
 #Aqui inicia la tercer pestaña
 
@@ -820,11 +849,12 @@ def on_iniciar_calculo():
     messagebox.showinfo("Información", "Iniciando el proceso de cálculo...")
 
     # Ejecutar el cálculo en un hilo separado
-    hilo_calculo = threading.Thread(target=ejecutar_calculo)
+    hilo_calculo = threading.Thread(target=ejecutar_calculo, daemon=True)  # Agregar daemon=True
     hilo_calculo.start()
 
+
 def ejecutar_calculo():
-    global Final_name, columns_to_check
+    global Final_name, columns_to_check, df_combined
 
     try:
         # Aplicar la función a ambos DataFrames
@@ -834,17 +864,17 @@ def ejecutar_calculo():
         csv_bg = calculos_eventos(filtered_dfbg, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
         csv_bg['Td'] = "b"
 
-        # Pedir nombre para guardar el BG
-        name_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo de BG")
-        if name_bg:
-            csv_bg.to_csv(name_bg, index=False)
-            print(f"Se guardó el análisis para el BG en: {name_bg}")
-
         # Pedir nombre para guardar el Signal
         name_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo de Signal")
         if name_sg:
             csv_sig.to_csv(name_sg, index=False)
             print(f"Se guardó el análisis para el Signal en: {name_sg}")
+
+        # Pedir nombre para guardar el BG
+        name_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo de Background")
+        if name_bg:
+            csv_bg.to_csv(name_bg, index=False)
+            print(f"Se guardó el análisis para el BG en: {name_bg}")
 
         # Combinar ambos DataFrames
         df_combined = pd.concat([csv_bg, csv_sig], ignore_index=False)
