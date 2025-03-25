@@ -1335,8 +1335,8 @@ def main():
     plt.tick_params(axis='both', which='major', labelsize=22)  # size of axis numbers
     plt.title(titulo)
     plt.grid(True)
-    name_graphic=input("Ingrese el nombre para guardar la grafica: ")
-    plt.savefig(name_graphic + '.jpg', bbox_inches='tight')
+    name_graphic_sig=input("Ingrese el nombre para guardar la grafica: ")
+    plt.savefig(name_graphic_sig + '.jpg', bbox_inches='tight')
     plt.show()
 
 if __name__ == '__main__':
