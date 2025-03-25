@@ -788,11 +788,12 @@ background_df = results_df[results_df['Td'] == 'b']
 columns_to_check = df_combined.columns[1:-1]
 
 # Función para crear histogramas y guardar la gráfica
-def crear_histograma(df_signal, df_background, columna, xlabel, ylabel, title, filename=None):
-        # Usar la primera columna para los pesos
+def crear_histograma(df_signal, df_background, columna, xlabel, ylabel, title, binsopt, rango_min, rango_max, filename=None):
+    # Usar la primera columna para los pesos
     primera_columna = df_signal.columns[0]
-    plt.hist(df_signal[columna], weights=df_signal[primera_columna], bins=50, edgecolor='black', alpha=0.5, label='Signal', density=True)
-    plt.hist(df_background[columna], weights=df_background[primera_columna], bins=50, edgecolor='black', alpha=0.5, label='Background', density=True)
+    print(binsopt)
+    plt.hist(df_signal[columna], weights=df_signal[primera_columna], bins=binsopt, range=(rango_min, rango_max), edgecolor='black', alpha=0.5, label='Signal', density=True)
+    plt.hist(df_background[columna], weights=df_background[primera_columna], bins=binsopt, range=(rango_min, rango_max), edgecolor='black', alpha=0.5, label='Background', density=True)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title(title)
@@ -813,27 +814,47 @@ while True:
     if columna_seleccionada.lower() == 'salir':
         break
 
-    # Crear el histograma para la columna seleccionada sin límite y sin guardar
-    crear_histograma(signal_df, background_df, columna_seleccionada, columna_seleccionada, 'Número de Eventos', f'{columna_seleccionada} vs Número de Eventos')
+    # Preguntar al usuario el número de bins y verificar que sea positivo
+    while True:
+        try:
+            binsopt = int(input("Por favor, ingrese el número de bins para el histograma (debe ser un entero positivo): "))
+            if binsopt > 0:
+                break
+            else:
+                print("El número de bins debe ser un entero positivo. Inténtelo de nuevo.")
+        except ValueError:
+            print("Por favor, ingrese un número entero válido.")
 
-    # Preguntar al usuario si desea imponer un límite y guardar la gráfica
-    imponer_limite = input("¿Desea imponer un límite y guardar la gráfica? (sí/no): ")
+    # Preguntar al usuario el rango mínimo y máximo para la columna seleccionada
+    while True:
+        try:
+            rango_min = float(input(f"Por favor, ingrese el rango mínimo para la columna {columna_seleccionada}: "))
+            rango_max = float(input(f"Por favor, ingrese el rango máximo para la columna {columna_seleccionada}: "))
+            if rango_min < rango_max:
+                break
+            else:
+                print("El rango mínimo debe ser menor que el rango máximo. Inténtelo de nuevo.")
+        except ValueError:
+            print("Por favor, ingrese valores numéricos válidos para el rango.")
+
+    # Crear el histograma para la columna seleccionada sin guardar
+    print(binsopt)
+    crear_histograma(signal_df, background_df, columna_seleccionada, columna_seleccionada, 'Número de Eventos',f'{columna_seleccionada} vs Número de Eventos', binsopt, rango_min, rango_max, None)
+
+    # Preguntar al usuario si desea guardar la gráfica
+    guardar_grafica = input("¿Desea guardar la gráfica? (sí/no): ")
     
-    if imponer_limite.lower() == 'si':
-        # Preguntar al usuario el límite para la columna seleccionada
-        limite = float(input(f"Por favor, ingrese el límite para la columna {columna_seleccionada}: "))
-
-        # Aplicar el filtro del límite a ambas tablas
-        signal_df_filtrado = signal_df[signal_df[columna_seleccionada] <= limite]
-        background_df_filtrado = background_df[background_df[columna_seleccionada] <= limite]
-
+    if guardar_grafica.lower() == 'si':
         # Preguntar al usuario el nombre del archivo para guardar la gráfica
         nombre_archivo = input("Por favor, ingrese el nombre del archivo para guardar la gráfica: ")
         nombre_archivo = nombre_archivo + ".jpg"
 
-        # Crear el histograma para la columna seleccionada con el límite y guardar la gráfica
-        name_graphic=input("Inserte el título que desea poner para la gráfica")
-        crear_histograma(signal_df_filtrado, background_df_filtrado, columna_seleccionada, columna_seleccionada, 'N.Events', name_graphic, nombre_archivo)
+        # Preguntar al usuario el título para la gráfica
+        name_graphic = input("Inserte el título que desea poner para la gráfica: ")
+
+        # Crear el histograma para la columna seleccionada y guardar la gráfica
+        crear_histograma(signal_df, background_df, columna_seleccionada, columna_seleccionada,"N.Events", name_graphic, binsopt, rango_min, rango_max, nombre_archivo)
+
 print("INICIA PROCESO PARA BDT")
 #INICIA PROCESO PARA BDT
 # Separar la primera fila (títulos de las columnas)
