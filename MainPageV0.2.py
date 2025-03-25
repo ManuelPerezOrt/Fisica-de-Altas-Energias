@@ -49,12 +49,12 @@ mimetypes.add_type('csv', '.csv')
 
 #FUNCION PARA SELECCIONAR ARCHIVO SIGNAL
 def select_signal_file():
-    filepath = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
+    filepath = filedialog.askopenfilename(filetypes=[("Archivos CSV", "*.csv"), ("Archivos LHCO", "*.lhco")])
     if filepath:
         signal_listbox.insert(tk.END, filepath)
 #FUNCION PARA SELECCIONAR ARCHIVO BACKGROUND
 def add_background_file():
-    filepath = filedialog.askopenfilename(filetypes=[("LHCO or CSV", "*.lhco;*.csv")])
+    filepath = filedialog.askopenfilename(filetypes=[("Archivos CSV", "*.csv"), ("Archivos LHCO", "*.lhco")])
     if filepath:
         background_listbox.insert(tk.END, filepath)
 #FUNCION PARA ELIMINAR ARCHIVO SIGNAL SELECCIONADO
