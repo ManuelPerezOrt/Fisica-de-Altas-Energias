@@ -272,13 +272,21 @@ def transformar_tuplas(tuplas):
     return resultado
 #FUNCION PARA AÑADIR PARTICULAS
 def add_particle():
-    cantidad = int(entry_quantity.get())
-    particula = particle_choice.get()
-    lista.append((cantidad, particula))
-    lista_box.insert(tk.END, f"{cantidad} {particula}")
+    try:
+        cantidad = int(entry_quantity.get())
+        particula = particle_choice.get()
+        if cantidad <= 0:
+            raise ValueError("La cantidad debe ser mayor a 0.")
+        lista.append((cantidad, particula))
+        lista_box.insert(tk.END, f"{cantidad} {particula}")
+    except ValueError as e:
+        messagebox.showerror("Error", f"Entrada inválida: {e}")
 #FUNCION PARA ELIMINAR PARTICULAS SELECCIONADAS
 def remove_selected_particle():
     selected_indices = lista_box.curselection()
+    if not selected_indices:
+        messagebox.showwarning("Advertencia", "No se seleccionó ninguna partícula.")
+        return
     for index in reversed(selected_indices):
         lista.pop(index)
         lista_box.delete(index)
@@ -314,27 +322,85 @@ def analyze_particles():
     comb_cuartetos_listbox.delete(0, tk.END)
     for comb in comb_cuartetos_names:
         comb_cuartetos_listbox.insert(tk.END, comb)
+
 #Función para sobrescribir la lista
-def overwrite_list(listbox, comb_list, comb_tuples):
-
-    selected_indices = listbox.curselection()
-    selected_combinations = [comb_list[i] for i in selected_indices]
-
-    if not selected_combinations:
+def overwrite_pares():
+    global comb_pares_names, combinaciones_pares
+    selected_indices = comb_pares_listbox.curselection()
+    
+    # Obtener las combinaciones seleccionadas en formato nombres
+    selected_names = [comb_pares_names[i] for i in selected_indices]
+    if not selected_names:
         messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
         return
+    
+    # Mapear las combinaciones seleccionadas de nombres a valores numéricos
+    selected_combinations = [
+        combinaciones_pares[i] for i in selected_indices
+    ]
+    
+    # Sobrescribir las listas globales
+    comb_pares_names = selected_names
+    combinaciones_pares = selected_combinations
 
-    # Refrescar la lista en la interfaz
-    comb_list.clear()
-    comb_list.extend(selected_combinations)
-    comb_tuples.clear()
-    comb_tuples.extend(selected_combinations)
+    # Refrescar el Listbox
+    comb_pares_listbox.delete(0, tk.END)
+    for name in comb_pares_names:
+        comb_pares_listbox.insert(tk.END, name)
 
-    listbox.delete(0, tk.END)
-    for comb in comb_list:
-        listbox.insert(tk.END, comb)
+    messagebox.showinfo("Éxito", "La lista de combinaciones de pares ha sido sobrescrita correctamente.")
 
-    messagebox.showinfo("Éxito", "La lista ha sido sobrescrita con las selecciones realizadas.")
+def overwrite_trios():
+    global comb_trios_names, combinaciones_trios
+    selected_indices = comb_trios_listbox.curselection()
+    
+    # Obtener las combinaciones seleccionadas en formato nombres
+    selected_names = [comb_trios_names[i] for i in selected_indices]
+    if not selected_names:
+        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        return
+    
+    # Mapear las combinaciones seleccionadas de nombres a valores numéricos
+    selected_combinations = [
+        combinaciones_trios[i] for i in selected_indices
+    ]
+    
+    # Sobrescribir las listas globales
+    comb_trios_names = selected_names
+    combinaciones_trios = selected_combinations
+
+    # Refrescar el Listbox
+    comb_trios_listbox.delete(0, tk.END)
+    for name in comb_trios_names:
+        comb_trios_listbox.insert(tk.END, name)
+
+    messagebox.showinfo("Éxito", "La lista de combinaciones de tríos ha sido sobrescrita correctamente.")
+
+def overwrite_cuartetos():
+    global comb_cuartetos_names, combinaciones_cuartetos
+    selected_indices = comb_cuartetos_listbox.curselection()
+    
+    # Obtener las combinaciones seleccionadas en formato nombres
+    selected_names = [comb_cuartetos_names[i] for i in selected_indices]
+    if not selected_names:
+        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        return
+    
+    # Mapear las combinaciones seleccionadas de nombres a valores numéricos
+    selected_combinations = [
+        combinaciones_cuartetos[i] for i in selected_indices
+    ]
+    
+    # Sobrescribir las listas globales
+    comb_cuartetos_names = selected_names
+    combinaciones_cuartetos = selected_combinations
+
+    # Refrescar el Listbox
+    comb_cuartetos_listbox.delete(0, tk.END)
+    for name in comb_cuartetos_names:
+        comb_cuartetos_listbox.insert(tk.END, name)
+
+    messagebox.showinfo("Éxito", "La lista de combinaciones de cuartetos ha sido sobrescrita correctamente.")
 
 tk.Label(tab2, text="Ingrese la cantidad y tipo de partícula del estado final que deseas analizar:").pack()
 
@@ -383,26 +449,65 @@ explanation_text_2 = (
 )
 ttk.Label(tab2, text=explanation_text_2, justify="left").pack(pady=10)
 
-# Crear listas desplazables
-def create_scrollable_listbox(root, title):
-    frame = ttk.Frame(root)
-    frame.pack()
-    ttk.Label(frame, text=title).pack()
-    scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL)
-    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-    listbox = tk.Listbox(frame, width=50, height=5, yscrollcommand=scrollbar.set, selectmode=tk.MULTIPLE)
-    listbox.pack(side=tk.LEFT, fill=tk.BOTH)
-    scrollbar.config(command=listbox.yview)
-    return listbox, frame
+# Crear un frame para las combinaciones de pares
+frame_comb_pares = ttk.Frame(tab2, padding=10)
+frame_comb_pares.pack(pady=5, fill=tk.X)
 
-comb_pares_listbox, frame_comb_pares = create_scrollable_listbox(tab2, "Combinaciones de pares:")
-ttk.Button(frame_comb_pares, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_pares_listbox, comb_pares_names, combinaciones_pares)).pack()
+# Label para "Pares" centrado
+ttk.Label(frame_comb_pares, text="Combinaciones de Pares:", anchor="center").pack(pady=5)
 
-comb_trios_listbox, frame_comb_trios = create_scrollable_listbox(tab2, "Combinaciones de tríos:")
-ttk.Button(frame_comb_trios, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_trios_listbox, comb_trios_names, combinaciones_trios)).pack()
+# Listbox, Scrollbar y Botón para "Pares"
+listbox_pares_frame = ttk.Frame(frame_comb_pares)
+listbox_pares_frame.pack(pady=5)
 
-comb_cuartetos_listbox, frame_comb_cuartetos = create_scrollable_listbox(tab2, "Combinaciones de cuartetos:")
-ttk.Button(frame_comb_cuartetos, text="Sobrescribir Lista", command=lambda: overwrite_list(comb_cuartetos_listbox, comb_cuartetos_names, combinaciones_cuartetos)).pack()
+comb_pares_listbox = tk.Listbox(listbox_pares_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_pares_listbox.pack(side=tk.LEFT)
+
+comb_pares_scrollbar = ttk.Scrollbar(listbox_pares_frame, orient=tk.VERTICAL, command=comb_pares_listbox.yview)
+comb_pares_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_pares_listbox.config(yscrollcommand=comb_pares_scrollbar.set)
+
+ttk.Button(listbox_pares_frame, text="Sobrescribir Lista", command=overwrite_pares).pack(side=tk.LEFT, padx=10)
+
+# Crear un frame para las combinaciones de tríos
+frame_comb_trios = ttk.Frame(tab2, padding=10)
+frame_comb_trios.pack(pady=5, fill=tk.X)
+
+# Label para "Tríos" centrado
+ttk.Label(frame_comb_trios, text="Combinaciones de Tríos:", anchor="center").pack(pady=5)
+
+# Listbox, Scrollbar y Botón para "Tríos"
+listbox_trios_frame = ttk.Frame(frame_comb_trios)
+listbox_trios_frame.pack(pady=5)
+
+comb_trios_listbox = tk.Listbox(listbox_trios_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_trios_listbox.pack(side=tk.LEFT)
+
+comb_trios_scrollbar = ttk.Scrollbar(listbox_trios_frame, orient=tk.VERTICAL, command=comb_trios_listbox.yview)
+comb_trios_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_trios_listbox.config(yscrollcommand=comb_trios_scrollbar.set)
+
+ttk.Button(listbox_trios_frame, text="Sobrescribir Lista", command=overwrite_trios).pack(side=tk.LEFT, padx=10)
+
+# Crear un frame para las combinaciones de cuartetos
+frame_comb_cuartetos = ttk.Frame(tab2, padding=10)
+frame_comb_cuartetos.pack(pady=5, fill=tk.X)
+
+# Label para "Cuartetos" centrado
+ttk.Label(frame_comb_cuartetos, text="Combinaciones de Cuartetos:", anchor="center").pack(pady=5)
+
+# Listbox, Scrollbar y Botón para "Cuartetos"
+listbox_cuartetos_frame = ttk.Frame(frame_comb_cuartetos)
+listbox_cuartetos_frame.pack(pady=5)
+
+comb_cuartetos_listbox = tk.Listbox(listbox_cuartetos_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_cuartetos_listbox.pack(side=tk.LEFT)
+
+comb_cuartetos_scrollbar = ttk.Scrollbar(listbox_cuartetos_frame, orient=tk.VERTICAL, command=comb_cuartetos_listbox.yview)
+comb_cuartetos_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_cuartetos_listbox.config(yscrollcommand=comb_cuartetos_scrollbar.set)
+
+ttk.Button(listbox_cuartetos_frame, text="Sobrescribir Lista", command=overwrite_cuartetos).pack(side=tk.LEFT, padx=10)
 
 ##### Aqui inicia la tercer pestaña
 
@@ -517,32 +622,23 @@ def phi_part(evento, listapart):
         phi_prt = prt.iloc[posicion]['phi']
         return phi_prt
     
-    return None
+    return 0
 #OBTENCIÓN ETA
-def eta_part(evento, listapart):
-    tipo = listapart[0]
-    posicion = listapart[1] - 1  # Ajustamos a índice base 0
-    criterio = listapart[2] if len(listapart) > 2 else None  # Evita errores si listapart tiene menos elementos
-
-    # Filtrar por tipo de partícula
-    prt = evento[evento['typ'] == tipo]
-
-    # Aplicar filtros adicionales según tipo
-    if tipo in [1, 2] and criterio is not None:
-        prt = prt[prt['ntrk'] == criterio]
-    elif tipo == 4 and criterio is not None:
-        if criterio == 0:
-            prt = prt[prt['btag'] == criterio]
-        elif criterio == 1:
+def eta_part(evento,listapart):
+    prt=evento[evento['typ']==listapart[0]]
+    if listapart[0] in [1, 2]:
+        prt = prt[prt['ntrk'] == listapart[2]]
+        # Condición extra para typ 4
+    if listapart[0] == 4:
+        if listapart[2] == 0:
+            prt = prt[prt['btag'] == listapart[2]]
+        elif listapart[2] == 1:
             prt = prt[prt['btag'].isin([1, 2])]
-
-    # Verificar si hay elementos suficientes
-    if len(prt) > posicion >= 0:
-        try:
-            return prt.iloc[posicion]['eta']
-        except IndexError:
-            return None  # Si la posición está fuera del rango
-    return None
+    if not prt.empty:
+    	posicion=listapart[1]-1
+    	eta_prt = prt.iloc[posicion]['eta']
+    	return eta_prt
+    return 0
 #OBTENCIÓN PT
 def pt_part(evento,listapart):
     prt=evento[evento['typ']==listapart[0]]
@@ -558,7 +654,7 @@ def pt_part(evento,listapart):
         posicion=listapart[1]-1
         pt_prt = prt.iloc[posicion]['pt']
         return pt_prt
-    return None
+    return 0
 #MASA TRANSVERSAL
 def m_trans(evento,comb):
     # Filtrar las partículas
@@ -597,7 +693,7 @@ def m_trans(evento,comb):
         # print(m_trans)
         m_trans=np.sqrt(m_trans_sqrt)
         return  m_trans
-    return None
+    return 0
 #MASA INVARIANTE
 def m_inv(evento, comb):
     # Filtrar las partículas
@@ -638,43 +734,25 @@ def m_inv(evento, comb):
         m_in = np.sqrt(m_in_squared)
         
         return m_in
-    return None
+    return 0
 #FUNCION PARA CALCULAR LOS EVENTOS
 def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos, batch_size=300):
-    
-    def procesar_evento(event_df, lista_num_mod, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos):
-        masainv, masainv_trios, masainv_cuartetos = [], [], []
-        masatrans, deltar, no_jets, pt, phi, eta = [], [], [], [], [], []
+    masainv = []
+    masainv_trios = []
+    masainv_cuartetos = []
+    masatrans = []
+    deltar = []
+    no_jets = []
+    pt = []
+    phi = []
+    eta = []
 
-        no_jets.append(Num_jets(event_df))
-        
-        for comb in combinaciones_cuartetos:
-            masainv_cuartetos.append(m_inv(event_df, comb))
-        
-        for comb in combinaciones_trios:
-            masainv_trios.append(m_inv(event_df, comb))
-        
-        for i in lista_num_mod:
-            pt.append(pt_part(event_df, i))
-            eta.append(eta_part(event_df, i))
-            phi.append(phi_part(event_df, i))
-        
-        for comb in combinaciones_pares:
-            masainv.append(m_inv(event_df, comb))
-            masatrans.append(m_trans(event_df, comb))
-            deltar.append(Deltar(event_df, comb))
-
-        return masainv, masainv_trios, masainv_cuartetos, masatrans, deltar, no_jets, pt, phi, eta
-
-    masainv, masainv_trios, masainv_cuartetos = [], [], []
-    masatrans, deltar, no_jets, pt, phi, eta = [], [], [], [], [], []
-
-    total_batches = (len(df) + batch_size - 1) // batch_size
+    total_batches = (len(df) + batch_size - 1) // batch_size  # Calcular el número total de lotes
     with tqdm(total=total_batches, desc="Calculando eventos") as pbar:
         start = 0
         while start < len(df):
             end = start + batch_size
-
+            # Ajustar el final del lote para no cortar eventos a la mitad
             while end < len(df) and df.iloc[end]['#'] != 0:
                 end += 1
 
@@ -686,91 +764,122 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
                 if row['#'] == 0:
                     if current_event:
                         event_df = pd.DataFrame(current_event)
-                        # Procesar evento
-                        result = procesar_evento(event_df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
-                        masainv.extend(result[0])
-                        masainv_trios.extend(result[1])
-                        masainv_cuartetos.extend(result[2])
-                        masatrans.extend(result[3])
-                        deltar.extend(result[4])
-                        no_jets.extend(result[5])
-                        pt.extend(result[6])
-                        phi.extend(result[7])
-                        eta.extend(result[8])
+                        no_jets.append(Num_jets(event_df))
+                        for i in combinaciones_cuartetos:
+                            masainv_cuartetos.append(m_inv(event_df, i))
+                        for i in combinaciones_trios:
+                            masainv_trios.append(m_inv(event_df, i))
+                        for i in lista_num_mod:
+                            pt.append(pt_part(event_df, i))
+                            eta.append(eta_part(event_df, i))
+                            phi.append(phi_part(event_df, i))
+                        for i in combinaciones_pares:
+                                masainv.append(m_inv(event_df, i))
+                        for i in combinaciones_pares:
+                            masatrans.append(m_trans(event_df, i))
+                        for i in combinaciones_pares:
+                            deltar.append(Deltar(event_df, i))
                     current_event = []
                     current_event_number = row['#']
                 current_event.append(row)
 
             if current_event:
                 event_df = pd.DataFrame(current_event)
-                # Procesar evento
-                result = procesar_evento(event_df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos)
-                masainv.extend(result[0])
-                masainv_trios.extend(result[1])
-                masainv_cuartetos.extend(result[2])
-                masatrans.extend(result[3])
-                deltar.extend(result[4])
-                no_jets.extend(result[5])
-                pt.extend(result[6])
-                phi.extend(result[7])
-                eta.extend(result[8])
+                no_jets.append(Num_jets(event_df))
+                for i in combinaciones_cuartetos:
+                    masainv_cuartetos.append(m_inv(event_df, i))
+                for i in combinaciones_trios:
+                    masainv_trios.append(m_inv(event_df, i))
+                for i in lista_num_mod:
+                    pt.append(pt_part(event_df, i))
+                    eta.append(eta_part(event_df, i))
+                    phi.append(phi_part(event_df, i))
+                for i in combinaciones_pares:
+                        masainv.append(m_inv(event_df, i))
+                for i in combinaciones_pares:
+                        masatrans.append(m_trans(event_df, i))
+                for i in combinaciones_pares:
+                        deltar.append(Deltar(event_df, i))
 
             start = end
-            pbar.update(1)
+            pbar.update(1)  # Actualizar la barra de progreso
+    masainv_trios = np.array(masainv_trios)
+    if masainv_trios.size > 0:
+        g = int(len(masainv_trios) / len(combinaciones_trios))
+        masainv_trios = masainv_trios.reshape(g, -1)
+    masainv_cuartetos = np.array(masainv_cuartetos)
+    if masainv_cuartetos.size > 0:
+        h = int(len(masainv_cuartetos) / len(combinaciones_cuartetos))
+        masainv_cuartetos = masainv_cuartetos.reshape(h, -1)
+    deltar = np.array(deltar)
+    if deltar.size > 0:
+        f = int(len(deltar) / len(combinaciones_pares))
+        deltar = deltar.reshape(f, -1)
+    phi = np.array(phi)
+    if phi.size > 0:
+        d = int(len(phi) / len(lista_num))
+        phi = phi.reshape(d, -1)
+    eta = np.array(eta)
+    if eta.size > 0:
+        e = int(len(eta) / len(lista_num))
+        eta = eta.reshape(e, -1)
+    pt = np.array(pt)
+    if pt.size > 0:
+        c = int(len(pt) / len(lista_num))
+        pt = pt.reshape(c, -1)
+    masainv = np.array(masainv)
+    if masainv.size > 0:
+        a = int(len(masainv) / len(combinaciones_pares))
+        masainv = masainv.reshape(a, -1)
+    masatrans = np.array(masatrans)
+    if masatrans.size > 0:
+        b = int(len(masatrans) / len(combinaciones_pares))
+        masatrans = masatrans.reshape(b, -1)
 
-    # Reshaping arrays if they are non-empty
-    masainv_trios = np.array(masainv_trios).reshape(-1, len(combinaciones_trios)) if masainv_trios else np.array([])
-    masainv_cuartetos = np.array(masainv_cuartetos).reshape(-1, len(combinaciones_cuartetos)) if masainv_cuartetos else np.array([])
-    deltar = np.array(deltar).reshape(-1, len(combinaciones_pares)) if deltar else np.array([])
-    phi = np.array(phi).reshape(-1, len(lista_num)) if phi else np.array([])
-    eta = np.array(eta).reshape(-1, len(lista_num)) if eta else np.array([])
-    pt = np.array(pt).reshape(-1, len(lista_num)) if pt else np.array([])
-    masainv = np.array(masainv).reshape(-1, len(combinaciones_pares)) if masainv else np.array([])
-    masatrans = np.array(masatrans).reshape(-1, len(combinaciones_pares)) if masatrans else np.array([])
-
-    # Crear los nombres de las columnas
-    colum, colum1, colum2 = [], [], []
+    columtrios = []
+    columcuartetos = []
+    columpares = []
+    columpares1 = []
+    columpares2 = []
+    colum = []
+    colum1 = []
+    colum2 = []
     for i in lista_num_names:
         cadena = tupla_a_cadena(i)
         colum.append('Pt ' + cadena)
         colum1.append('Eta ' + cadena)
         colum2.append('Phi ' + cadena)
-    
-    columpares, columpares1, columpares2 = [], [], []
     for i in comb_pares_names:
         cadena = tupla_a_cadena(i)
         columpares.append('m_inv ' + cadena)
+    for i in comb_pares_names:
+        cadena = tupla_a_cadena(i)
         columpares1.append('m_trans ' + cadena)
+    for i in comb_pares_names:
+        cadena = tupla_a_cadena(i)
         columpares2.append('deltaR ' + cadena)
-    
-    columtrios, columcuartetos = [], []
     for i in comb_trios_names:
         cadena = tupla_a_cadena(i)
         columtrios.append('m_inv ' + cadena)
-    
     for i in comb_cuartetos_names:
         cadena = tupla_a_cadena(i)
         columcuartetos.append('m_inv ' + cadena)
 
-    # Crear DataFrames si no están vacíos
-    def create_dataframe(data, columns):
-        return pd.DataFrame(data, columns=columns) if data.size > 0 else pd.DataFrame()
-
-    # Crear los DataFrames
-    csv_columtrios = create_dataframe(masainv_trios, columtrios)
-    csv_columcuartetos = create_dataframe(masainv_cuartetos, columcuartetos)
-    csv_deltar = create_dataframe(deltar, columpares2)
-    csv_pt = create_dataframe(pt, colum)
-    csv_eta = create_dataframe(eta, colum1)
-    csv_phi = create_dataframe(phi, colum2)
-    csv_minv = create_dataframe(masainv, columpares)
-    csv_mtrans = create_dataframe(masatrans, columpares1)
-
-    # Concatenar DataFrames no vacíos
+    # Crear DataFrames solo si los arrays no están vacíos
+    csv_columtrios = pd.DataFrame(masainv_trios, columns=columtrios) if masainv_trios.size > 0 else pd.DataFrame()
+    csv_columcuartetos = pd.DataFrame(masainv_cuartetos, columns=columcuartetos) if masainv_cuartetos.size > 0 else pd.DataFrame()
+    csv_deltar = pd.DataFrame(deltar, columns=columpares2) if deltar.size > 0 else pd.DataFrame()
+    csv_pt = pd.DataFrame(pt, columns=colum) if pt.size > 0 else pd.DataFrame()
+    csv_eta = pd.DataFrame(eta, columns=colum1) if eta.size > 0 else pd.DataFrame()
+    csv_phi = pd.DataFrame(phi, columns=colum2) if phi.size > 0 else pd.DataFrame()
+    csv_minv = pd.DataFrame(masainv, columns=columpares) if masainv.size > 0 else pd.DataFrame()
+    csv_mtrans = pd.DataFrame(masatrans, columns=columpares1) if masatrans.size > 0 else pd.DataFrame()
+    # Concatenar solo los DataFrames que no están vacíos
     csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos], axis=1)
     csv_combined["No_jets"] = no_jets
-
+    #print(no_jets)
     return csv_combined
+
 #FUNCION PARA FILTRAR LOS EVENTOS
 def on_filtrar_eventos():
     global filtered_dfbg, filtered_dfsg
@@ -805,8 +914,8 @@ def on_filtrar_eventos():
         global filtered_dfbg, filtered_dfsg
 
         try:
-            file_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar BG filtrado")
             file_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar Signal filtrado")
+            file_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar BG filtrado")
 
             if not file_bg or not file_sg:
                 messagebox.showerror("Error", "Debe seleccionar nombres para los archivos filtrados.")
@@ -1260,7 +1369,7 @@ def apply_filter():
         messagebox.showerror("Error", "Por favor, ingrese un número entero válido para el factor.")
 
 def process_data():
-    global df_shuffled, vars_for_train, df_4train, signal_features, signal_lab, bkgnd_features, bkgnd_labels, features_, label_
+    global vars_for_train, df_4train, signal_features, signal_lab, bkgnd_features, bkgnd_labels, features_, label_
 
     try:
         # Verificar si 'df_shuffled' está cargado
@@ -1324,9 +1433,9 @@ def process_data():
 
         # Mensaje al usuario
         processed_info = (f"Datos procesados correctamente.\n"
-                          f"Total de características usadas: {signal_features.shape[1]}\n"
-                          f"Total de eventos para entrenamiento: {signal_features.shape[0] + bkgnd_features.shape[0]}\n"
-                          f"Variables eliminadas por alta correlación: {to_drop}")
+                          f"Total de características usadas:\n {signal_features.shape[1]}\n"
+                          f"Total de eventos para entrenamiento:\n {signal_features.shape[0] + bkgnd_features.shape[0]}\n"
+                          f"Variables eliminadas por alta correlación:\n {to_drop}")
         messagebox.showinfo("Exito","Preprocesamiento Completado")
 
         # Actualizar contenido en el cuadro de texto (si existe)
@@ -1567,7 +1676,7 @@ tk.Button(tab4, text="Actualizar Datos", command=apply_filter).pack()
 
 tk.Button(tab4, text="Procesar Datos", command=process_data).pack(pady=5)
 
-text_widget_2 = tk.Text(tab4, height=5, width=40)
+text_widget_2 = tk.Text(tab4, height=5, width=50)
 text_widget_2.pack(pady=5)
 
 tk.Label(tab4, text="Coloque la poporción de datos que desea usar\n"
@@ -1592,15 +1701,14 @@ text_widget_3.pack(pady=5)
 
 tk.Label(tab4, text="Genera el modelo y exporta los resultados:").pack(pady=5)
 
-text_widget_4 = tk.Frame(tab4, height=5, width=40)
-text_widget_4.pack(pady=5)
-
 # Botón para generar el modelo y las visualizaciones
-tk.Button(text_widget_4, text="Generar Modelo y Gráficas", command=lambda: generate_model_and_visuals(
-    train_feat, train_lab, test_feat, test_lab, modelv1, eval_set)).pack(side="left", padx=5)
+tk.Button(tab4, text="Generar Modelo y Gráficas", command=lambda: generate_model_and_visuals(
+    train_feat, train_lab, test_feat, test_lab, modelv1, eval_set)).pack(pady=5)
 
 # Botón para exportar CSV con las predicciones del modelo
-tk.Button(text_widget_4, text="Exportar CSV", command=export_csv_gui).pack(side="left", padx=5)
+
+tk.Label(tab4, text="Añadir la columna de clasificacion XGB al Df:").pack(pady=5)
+tk.Button(tab4, text="Generar CSV", command=export_csv_gui).pack(pady=5)
 
 # Configuración de la pestaña 5
 ####
@@ -1614,10 +1722,8 @@ cols = None  # Se llenará al cargar el CSV
 # Función para cargar y filtrar datos del CSV
 def load_csv():
     global df_shuffled, cols
-    file_path = filedialog.askopenfilename(
-        title="Seleccione el archivo CSV",
-        filetypes=[("Archivos CSV", "*.csv"), ("Todos los Archivos", "*.*")]
-    )
+    file_path = filedialog.askopenfilename(title="Seleccione el archivo CSV", filetypes=[("Archivos CSV", "*.csv")])
+    
     if file_path:
         try:
             df = pd.read_csv(file_path)
