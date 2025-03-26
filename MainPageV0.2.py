@@ -1712,24 +1712,24 @@ tk.Button(tab4, text="Generar CSV", command=export_csv_gui).pack(pady=5)
 
 # Configuración de la pestaña 5
 ####
-tk.Label(tab5, text="Significancia Estadística").pack()
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+import pandas as pd
+import numpy as np
+import math
+import matplotlib.pyplot as plt
 
-# Variables globales para almacenar los datos y resultados
+# Variables globales
 df_shuffled = None
 results_df = None
-cols = None  # Se llenará al cargar el CSV
 
 # Función para cargar y filtrar datos del CSV
 def load_csv():
-    global df_shuffled, cols
+    global df_shuffled
     file_path = filedialog.askopenfilename(title="Seleccione el archivo CSV", filetypes=[("Archivos CSV", "*.csv")])
-    
     if file_path:
         try:
             df = pd.read_csv(file_path)
-            # Se asumen todas las columnas, excepto 'Td' y 'Evento' (puedes ajustarlo según necesites)
-            cols = [c for c in df.columns if c not in ["Td", "Evento"]]
-            # Obtener el factor desde la interfaz (convertido a entero)
             factor_val = int(factor_entry.get())
             # Filtrar: tomar los primeros 'factor_val' de cada clase ("s" y "b")
             s_events = df[df['Td'] == "s"].head(factor_val)
@@ -1741,13 +1741,12 @@ def load_csv():
     else:
         messagebox.showwarning("Cancelado", "No se seleccionó archivo.")
 
-# Función para calcular la significancia en un corte XGB específico
-def compute_significance(mypdf, xgb_cut, XSs, XSb, factor_val):
+# Función para calcular la significancia
+def compute_significance(mypdf, xgb_cut, IntLumi, XSs, XSb, factor_val):
     filtered_pdf = mypdf[mypdf['XGB'] > xgb_cut]
     Ns = len(filtered_pdf[filtered_pdf['Td'] == "s"])
     Nb = len(filtered_pdf[filtered_pdf['Td'] == "b"])
     pbTOfb = 1000  # Conversión de pb a fb
-    IntLumi = 3000 # Luminosidad integrada
     alpha = XSs * pbTOfb * IntLumi / factor_val
     beta  = XSb * pbTOfb * IntLumi / factor_val
     try:
@@ -1756,7 +1755,7 @@ def compute_significance(mypdf, xgb_cut, XSs, XSb, factor_val):
         Sig = 0.0
     return Sig
 
-# Función para calcular la significancia para un rango de cortes XGB
+# Función principal para calcular la significancia en un rango de luminosidad y cortes XGB
 def calculate_significance_range():
     global results_df, df_shuffled
     try:
@@ -1768,61 +1767,84 @@ def calculate_significance_range():
         XSs = float(xsignal_entry.get())
         XSb = float(xbackground_entry.get())
         
-        # Si no existe la columna 'XGB', se la crea con valores aleatorios (como ejemplo)
+        # Si no existe la columna 'XGB', se la crea con valores aleatorios
         if 'XGB' not in df_shuffled.columns:
             np.random.seed(0)
             df_shuffled['XGB'] = np.random.rand(len(df_shuffled))
         
         Sig_vals = []
         XGB_vals = []
-        xgb_val = 0.5
-        for _ in range(499):
-            sig_val = compute_significance(df_shuffled, xgb_val, XSs, XSb, factor_val)
-            Sig_vals.append(sig_val)
-            XGB_vals.append(xgb_val)
-            xgb_val += 0.001
+        Lumi_vals = []
+
+        # Iterar sobre luminosidad y cortes XGB
+        for IntLumi in range(300, 3100, 100):  # Luminosidad de 300 a 3000
+            xgb_val = 0.5
+            for _ in range(100):  # 100 pasos de cortes XGB
+                sig_val = compute_significance(df_shuffled, xgb_val, IntLumi, XSs, XSb, factor_val)
+                Sig_vals.append(sig_val)
+                XGB_vals.append(xgb_val)
+                Lumi_vals.append(IntLumi)
+                xgb_val += 0.005
             
-        results_df = pd.DataFrame({'XGB_cut': XGB_vals, 'Significance': Sig_vals})
+        results_df = pd.DataFrame({'Luminosity': Lumi_vals, 'XGB Cut': XGB_vals, 'Significance': Sig_vals})
         messagebox.showinfo("Cálculo Completado", "El cálculo de la significancia se realizó correctamente.")
+
+        # Mostrar máxima significancia
+        maxsig = max(Sig_vals)
+        max_index = Sig_vals.index(maxsig)
+        val_xgb = XGB_vals[max_index]
+        val_lumi = Lumi_vals[max_index]
+        messagebox.showinfo("Resultados", f"Máxima significancia: {maxsig:.3f}\nXGB Cut: {val_xgb:.3f}\nLuminosidad: {val_lumi}")
+
     except Exception as e:
         messagebox.showerror("Error en Cálculo", f"Ocurrió un error durante el cálculo:\n{e}")
 
-# Función para guardar los resultados en un CSV
+# Función para guardar los resultados en un archivo CSV
 def save_results():
     global results_df
     if results_df is None or results_df.empty:
         messagebox.showerror("Error", "No hay resultados para guardar. Calcule la significancia primero.")
         return
-    file_name = filedialog.asksaveasfilename(
-        defaultextension=".csv",
-        filetypes=[("Archivos CSV", "*.csv")],
-        title="Guardar resultados de significancia"
-    )
-    if file_name:
-        results_df.to_csv(file_name, index=False)
-        messagebox.showinfo("Guardado", f"Resultados guardados en: {file_name}")
-    else:
-        messagebox.showwarning("Cancelado", "No se seleccionó archivo para guardar.")
+    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Archivos CSV", "*.csv")])
+    if file_path:
+        results_df.to_csv(file_path, index=False)
+        messagebox.showinfo("Guardado", f"Resultados guardados en: {file_path}")
 
-# Función para mostrar la fila con la mayor significancia
-def show_best_significance():
+# Función para graficar la significancia
+def plot_significance():
     global results_df
     if results_df is None or results_df.empty:
-        messagebox.showerror("Error", "No hay datos de significancia para analizar. Calcule la significancia primero.")
+        messagebox.showerror("Error", "No hay datos disponibles para graficar.")
         return
-    best_row = results_df.loc[results_df['Significance'].idxmax()]
-    best_tuple = tuple(best_row)
-    messagebox.showinfo("Mejor Significancia", f"La mejor fila es:\n{best_tuple}")
+    
+    Lumi_vals = results_df['Luminosity']
+    Sig_vals = results_df['Significance']
+    XGB_vals = results_df['XGB Cut']
 
+    # Crear gráfica
+    plt.figure(figsize=(10, 6))
+    scatter = plt.scatter(Lumi_vals, Sig_vals, c=XGB_vals, cmap='viridis')
+    plt.colorbar(scatter, label="XGB Cut")
+    plt.xlabel("Luminosity (fb$^{-1}$)")
+    plt.ylabel("Significance")
+    plt.title("Significance vs Luminosity")
+    plt.grid(True)
+    plt.show()
 
-# Botón para cargar CSV
+    # Guardar la gráfica
+    file_path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=[("Image files", "*.jpg")])
+    if file_path:
+        plt.savefig(file_path, bbox_inches='tight')
+        messagebox.showinfo("Guardado", f"Gráfica guardada en: {file_path}")
+
+# Interfaz de usuario
+tk.Label(tab5, text="Significancia Estadística").pack()
+
+# Botón para cargar archivo CSV
 frame_cargar = tk.Frame(tab5)
 frame_cargar.pack(pady=5)
-
-# Agregar el Label y el Button dentro de frame_cargar, ambos con side="left"
 tk.Label(frame_cargar, text="Cargar CSV y aplicar filtros").pack(side="left", padx=5)
 tk.Button(frame_cargar, text="Cargar CSV", command=load_csv).pack(side="left", padx=5)
-
 
 # Entrada para Factor (cantidad de eventos)
 frame_factor = tk.Frame(tab5)
@@ -1845,14 +1867,10 @@ tk.Label(frame_background, text="XS Background (pb):").pack(side="left")
 xbackground_entry = tk.Entry(frame_background)
 xbackground_entry.pack(side="left", padx=5)
 
-# Botón para calcular la significancia
+# Botones para calcular, guardar y graficar
 tk.Button(tab5, text="Calcular Significancia", command=calculate_significance_range).pack(pady=5)
-
-# Botón para guardar los resultados
 tk.Button(tab5, text="Guardar Resultados", command=save_results).pack(pady=5)
-
-# Botón para mostrar la fila con la mejor significancia
-tk.Button(tab5, text="Mostrar Mejor Significancia", command=show_best_significance).pack(pady=5)
+tk.Button(tab5, text="Graficar Significancia", command=plot_significance).pack(pady=5)
 
 root.mainloop()
 
