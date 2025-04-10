@@ -573,37 +573,109 @@ def Num_jets(evento):
 def momentum_vector(pt, phi, eta):
     pt_x, pt_y, pt_z = (pt * np.cos(phi)), (pt * np.sin(phi)), pt * np.sinh(eta)
     return pt_x, pt_y, pt_z
-#OBTENCIÓN DELTA R
+#DELTA R
 def Deltar(evento,comb):
     prt1 = evento[evento['typ'] == comb[0][0]]
     prt2 = evento[evento['typ']== comb[1][0]]
+    if comb[0][0] in [1, 2]:
+            prt1 = prt1[prt1['ntrk'] == comb[0][2]]
+    if comb[1][0] in [1, 2]:
+            prt2 = prt2[prt2['ntrk'] == comb[1][2]]
+        # Condición extra para typ 4
+    if comb[0][0] == 4:
+            if comb[0][2] == 0:
+                prt1 = prt1[prt1['btag'] == comb[0][2]]
+            elif comb[0][2] == 1:
+                prt1 = prt1[prt1['btag'].isin([1, 2])] 
+    if comb[1][0] == 4:
+            if comb[1][2] == 0:
+                prt2 = prt2[prt2['btag'] == comb[1][2]]
+            elif comb[1][2] == 1:
+                prt2 = prt2[prt2['btag'].isin([1, 2])]
+    if not prt1.empty and not prt2.empty:
+        posicion1 = comb[0][1] - 1
+        posicion2 = comb[1][1] - 1
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+            eta_prt1 = prt1.iloc[posicion1]['eta']
+            eta_prt2 = prt2.iloc[posicion2]['eta']
+            phi_prt1 = prt1.iloc[posicion1]['phi']
+            phi_prt2 = prt2.iloc[posicion2]['phi']
+            
+            delta_phi = abs(phi_prt1 - phi_prt2)
+            delta_eta = abs(eta_prt1 - eta_prt2)
+            
+            if delta_phi > math.pi:
+                delta_phi -= 2 * math.pi
+            elif delta_phi < -math.pi:
+                delta_phi += 2 * math.pi
+            
+            return np.sqrt(delta_eta**2 + delta_phi**2)
+        else:
+            return 0 
+    return 0
+#Ratio PT
+def RatioPt(evento,comb):
+    prt1 = evento[evento['typ'] == comb[0][0]]
+    prt2 = evento[evento['typ']== comb[1][0]]
+    if comb[0][0] in [1, 2]:
+            prt1 = prt1[prt1['ntrk'] == comb[0][2]]
+    if comb[1][0] in [1, 2]:
+            prt2 = prt2[prt2['ntrk'] == comb[1][2]]
+        # Condición extra para typ 4
+    if comb[0][0] == 4:
+            if comb[0][2] == 0:
+                prt1 = prt1[prt1['btag'] == comb[0][2]]
+            elif comb[0][2] == 1:
+                prt1 = prt1[prt1['btag'].isin([1, 2])] 
+    if comb[1][0] == 4:
+            if comb[1][2] == 0:
+                prt2 = prt2[prt2['btag'] == comb[1][2]]
+            elif comb[1][2] == 1:
+                prt2 = prt2[prt2['btag'].isin([1, 2])]
     if not prt1.empty and not prt2.empty:
         # Obtener el pt del primer fotón y de la MET
         #print(posicion1)
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
-        if comb[0][0] in [1, 2]:
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+        #print(prt1)
+          pt_prt1 = prt1.iloc[posicion1]['pt']
+          pt_prt2 = prt2.iloc[posicion2]['pt']
+          return pt_prt1/pt_prt2
+        else:
+          return 0
+    return 0
+#ProductEta
+def ProductEta(evento,comb):
+    prt1 = evento[evento['typ'] == comb[0][0]]
+    prt2 = evento[evento['typ']== comb[1][0]]
+    if comb[0][0] in [1, 2]:
             prt1 = prt1[prt1['ntrk'] == comb[0][2]]
-        if comb[1][0] in [1, 2]:
+    if comb[1][0] in [1, 2]:
             prt2 = prt2[prt2['ntrk'] == comb[1][2]]
         # Condición extra para typ 4
-        if comb[0][0] == 4:
+    if comb[0][0] == 4:
             if comb[0][2] == 0:
                 prt1 = prt1[prt1['btag'] == comb[0][2]]
             elif comb[0][2] == 1:
                 prt1 = prt1[prt1['btag'].isin([1, 2])] 
-        if comb[1][0] == 4:
+    if comb[1][0] == 4:
             if comb[1][2] == 0:
                 prt2 = prt2[prt2['btag'] == comb[1][2]]
             elif comb[1][2] == 1:
                 prt2 = prt2[prt2['btag'].isin([1, 2])]
-        #print(prt1)
-        eta_prt1 = prt1.iloc[posicion1]['eta']
-        eta_prt2 = prt2.iloc[posicion2]['eta']
-        phi_prt1 = prt1.iloc[posicion1]['phi']
-        phi_prt2 = prt2.iloc[posicion2]['phi']
-        return np.sqrt((eta_prt1-eta_prt2)**2 + (phi_prt1-phi_prt2)**2)
+    if not prt1.empty and not prt2.empty:
+        # Obtener el pt del primer fotón y de la MET
+        posicion1=comb[0][1]-1
+        posicion2=comb[1][1]-1
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+          eta_prt1 = prt1.iloc[posicion1]['eta']
+          eta_prt2 = prt2.iloc[posicion2]['eta']
+          return eta_prt1*eta_prt2
+        else:
+          return 0
     return 0
+
 #OBTENCIÓN PHI
 def phi_part(evento, listapart):
     prt = evento[evento['typ'] == listapart[0]]
@@ -619,8 +691,11 @@ def phi_part(evento, listapart):
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
         posicion = listapart[1] - 1
-        phi_prt = prt.iloc[posicion]['phi']
-        return phi_prt
+        if posicion < len(prt):
+            phi_prt = prt.iloc[posicion]['phi']
+            return phi_prt
+        else:
+            return 0 
     
     return 0
 #OBTENCIÓN ETA
@@ -636,8 +711,11 @@ def eta_part(evento,listapart):
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
     	posicion=listapart[1]-1
-    	eta_prt = prt.iloc[posicion]['eta']
-    	return eta_prt
+        if posicion < len(prt):
+            eta_prt = prt.iloc[posicion]['eta']
+            return eta_prt
+        else:
+            return 0 
     return 0
 #OBTENCIÓN PT
 def pt_part(evento,listapart):
@@ -652,8 +730,11 @@ def pt_part(evento,listapart):
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
         posicion=listapart[1]-1
-        pt_prt = prt.iloc[posicion]['pt']
-        return pt_prt
+        if posicion < len(prt):
+            pt_prt = prt.iloc[posicion]['pt']
+            return pt_prt
+        else:
+            return 0 
     return 0
 #MASA TRANSVERSAL
 def m_trans(evento,comb):
@@ -679,20 +760,26 @@ def m_trans(evento,comb):
     if not prt1.empty and not prt2.empty:
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
-        pt_prt1 = prt1.iloc[posicion1]['pt']
-        pt_prt2 = prt2.iloc[posicion2]['pt']
-        eta_prt1 = prt1.iloc[posicion1]['eta']
-        eta_prt2 = prt2.iloc[posicion2]['eta']
-        phi_prt1 = prt1.iloc[posicion1]['phi']
-        phi_prt2 = prt2.iloc[posicion2]['phi']
-        pt1_x,pt1_y,pt1_z=momentum_vector(pt_prt1, phi_prt1,eta_prt1 )
-        pt2_x,pt2_y,pt2_z=momentum_vector(pt_prt2, phi_prt2,eta_prt2 )
-        m_trans_sqrt=(np.sqrt(pt1_x**2 + pt1_y**2 ) + np.sqrt(pt2_x**2 + pt2_y**2 ))**2 -(pt1_x + pt2_x )**2 - (pt1_y + pt2_y )**2
-        if m_trans_sqrt < 0:
-            m_trans_sqrt=0
-        # print(m_trans)
-        m_trans=np.sqrt(m_trans_sqrt)
-        return  m_trans
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+            pt_prt1 = prt1.iloc[posicion1]['pt']
+            pt_prt2 = prt2.iloc[posicion2]['pt']
+            eta_prt1 = prt1.iloc[posicion1]['eta']
+            eta_prt2 = prt2.iloc[posicion2]['eta']
+            phi_prt1 = prt1.iloc[posicion1]['phi']
+            phi_prt2 = prt2.iloc[posicion2]['phi']
+            
+            pt1_x, pt1_y, pt1_z = momentum_vector(pt_prt1, phi_prt1, eta_prt1)
+            pt2_x, pt2_y, pt2_z = momentum_vector(pt_prt2, phi_prt2, eta_prt2)
+            
+            m_trans_sqrt = (np.sqrt(pt1_x**2 + pt1_y**2) + np.sqrt(pt2_x**2 + pt2_y**2))**2 - (pt1_x + pt2_x)**2 - (pt1_y + pt2_y)**2
+            
+            if m_trans_sqrt < 0:
+                m_trans_sqrt = 0
+            
+            m_trans = np.sqrt(m_trans_sqrt)
+            return m_trans
+        else:
+            return 0  # O cualquier valor que consideres apropiado
     return 0
 #MASA INVARIANTE
 def m_inv(evento, comb):
@@ -713,13 +800,20 @@ def m_inv(evento, comb):
     
     if all(not p.empty for p in prt):
         posiciones = [c[1] - 1 for c in comb]
-        pt = [p.iloc[pos]['pt'] for p, pos in zip(prt, posiciones)]
-        eta = [p.iloc[pos]['eta'] for p, pos in zip(prt, posiciones)]
-        phi = [p.iloc[pos]['phi'] for p, pos in zip(prt, posiciones)]
-        
+        pt = []
+        eta = []
+        phi = []
+        for p, pos in zip(prt, posiciones):
+          if pos < len(p):
+                pt.append(p.iloc[pos]['pt'])
+                eta.append(p.iloc[pos]['eta'])
+                phi.append(p.iloc[pos]['phi'])
+          else:
+                pt.append(0)
+                eta.append(0)
+                phi.append(0)
         momentum = [momentum_vector(pt[i], phi[i], eta[i]) for i in range(len(comb))]
         pt_x, pt_y, pt_z = zip(*momentum)
-        
         m_in_squared = (
             (sum(np.sqrt(px**2 + py**2 + pz**2) for px, py, pz in zip(pt_x, pt_y, pt_z)))**2 -
             sum(px for px in pt_x)**2 -
@@ -746,6 +840,8 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     pt = []
     phi = []
     eta = []
+    X_eta=[]
+    Ratio_pt=[]
 
     total_batches = (len(df) + batch_size - 1) // batch_size  # Calcular el número total de lotes
     with tqdm(total=total_batches, desc="Calculando eventos") as pbar:
@@ -779,6 +875,10 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
                             masatrans.append(m_trans(event_df, i))
                         for i in combinaciones_pares:
                             deltar.append(Deltar(event_df, i))
+                        for i in combinaciones_pares:
+                                Ratio_pt.append(RatioPt(event_df, i))
+                        for i in combinaciones_pares:
+                                X_eta.append(ProductEta(event_df, i))
                     current_event = []
                     current_event_number = row['#']
                 current_event.append(row)
@@ -800,9 +900,21 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
                         masatrans.append(m_trans(event_df, i))
                 for i in combinaciones_pares:
                         deltar.append(Deltar(event_df, i))
+                for i in combinaciones_pares:
+                        Ratio_pt.append(RatioPt(event_df, i))
+                for i in combinaciones_pares:
+                        X_eta.append(ProductEta(event_df, i))
 
             start = end
             pbar.update(1)  # Actualizar la barra de progreso
+    X_eta = np.array(X_eta)
+    if X_eta.size > 0:
+        a = int(len(X_eta) / len(combinaciones_pares_prdeta))
+        X_eta = X_eta.reshape(a, -1)
+    Ratio_pt = np.array(Ratio_pt)
+    if Ratio_pt.size > 0:
+        a = int(len(Ratio_pt) / len(combinaciones_pares_ratiopt))
+        Ratio_pt = Ratio_pt.reshape(a, -1)
     masainv_trios = np.array(masainv_trios)
     if masainv_trios.size > 0:
         g = int(len(masainv_trios) / len(combinaciones_trios))
@@ -841,6 +953,8 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     columpares = []
     columpares1 = []
     columpares2 = []
+    columpares3 = []
+    columpares4 = []
     colum = []
     colum1 = []
     colum2 = []
@@ -864,6 +978,12 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     for i in comb_cuartetos_names:
         cadena = tupla_a_cadena(i)
         columcuartetos.append('m_inv ' + cadena)
+    for i in comb_pares_names_ratiopt:
+        cadena = tupla_a_cadena(i)
+        columpares3.append('PT1/PT2'+ cadena)
+    for i in comb_pares_names_prdeta:
+        cadena = tupla_a_cadena(i)
+        columpares4.append('Eta1*Eta2' + cadena)
 
     # Crear DataFrames solo si los arrays no están vacíos
     csv_columtrios = pd.DataFrame(masainv_trios, columns=columtrios) if masainv_trios.size > 0 else pd.DataFrame()
@@ -874,8 +994,10 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     csv_phi = pd.DataFrame(phi, columns=colum2) if phi.size > 0 else pd.DataFrame()
     csv_minv = pd.DataFrame(masainv, columns=columpares) if masainv.size > 0 else pd.DataFrame()
     csv_mtrans = pd.DataFrame(masatrans, columns=columpares1) if masatrans.size > 0 else pd.DataFrame()
+    csv_ratiopt = pd.DataFrame(Ratio_pt, columns=columpares3) if Ratio_pt.size > 0 else pd.DataFrame()
+    csv_prdeta = pd.DataFrame(X_eta, columns=columpares4) if X_eta.size > 0 else pd.DataFrame()
     # Concatenar solo los DataFrames que no están vacíos
-    csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos], axis=1)
+    csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos,csv_ratiopt,csv_prdeta], axis=1)
     csv_combined["No_jets"] = no_jets
     #print(no_jets)
     return csv_combined
