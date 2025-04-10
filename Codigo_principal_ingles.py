@@ -270,7 +270,7 @@ else:
     except Exception as e:
         print(f"Error during event filtering: {e}")
         return pd.DataFrame()
- if a1== "1":
+ if a1== "0":
   print("Start the filtering of data.")
   filtered_dfsg = procesar_en_bloques(filtered_dfsg, lista_num_mod, bloque_tamano=100000)
  func_1=input("Do you want to add the calculation of invariant masses? Yes (1), No (0): ")
@@ -497,8 +497,11 @@ else:
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
         posicion = listapart[1] - 1
-        phi_prt = prt.iloc[posicion]['phi']
-        return phi_prt
+        if posicion < len(prt):
+            phi_prt = prt.iloc[posicion]['phi']
+            return phi_prt
+        else:
+            return 0 
     
     return 0
 
@@ -514,9 +517,12 @@ else:
         elif listapart[2] == 1:
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
-    	posicion=listapart[1]-1
-    	eta_prt = prt.iloc[posicion]['eta']
-    	return eta_prt
+        posicion = listapart[1] - 1
+        if posicion < len(prt):
+            eta_prt = prt.iloc[posicion]['eta']
+            return eta_prt
+        else:
+            return 0 
     return 0
 
  def pt_part(evento,listapart):
@@ -530,9 +536,12 @@ else:
         elif listapart[2] == 1:
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
-        posicion=listapart[1]-1
-        pt_prt = prt.iloc[posicion]['pt']
-        return pt_prt
+        posicion = listapart[1] - 1
+        if posicion < len(prt):
+            pt_prt = prt.iloc[posicion]['pt']
+            return pt_prt
+        else:
+            return 0 
     return 0
 #MASA TRANSVERSA
  def m_trans(evento,comb):
@@ -558,20 +567,26 @@ else:
     if not prt1.empty and not prt2.empty:
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
-        pt_prt1 = prt1.iloc[posicion1]['pt']
-        pt_prt2 = prt2.iloc[posicion2]['pt']
-        eta_prt1 = prt1.iloc[posicion1]['eta']
-        eta_prt2 = prt2.iloc[posicion2]['eta']
-        phi_prt1 = prt1.iloc[posicion1]['phi']
-        phi_prt2 = prt2.iloc[posicion2]['phi']
-        pt1_x,pt1_y,pt1_z=momentum_vector(pt_prt1, phi_prt1,eta_prt1 )
-        pt2_x,pt2_y,pt2_z=momentum_vector(pt_prt2, phi_prt2,eta_prt2 )
-        m_trans_sqrt=(np.sqrt(pt1_x**2 + pt1_y**2 ) + np.sqrt(pt2_x**2 + pt2_y**2 ))**2 -(pt1_x + pt2_x )**2 - (pt1_y + pt2_y )**2
-        if m_trans_sqrt < 0:
-            m_trans_sqrt=0
-        # print(m_trans)
-        m_trans=np.sqrt(m_trans_sqrt)
-        return  m_trans
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+            pt_prt1 = prt1.iloc[posicion1]['pt']
+            pt_prt2 = prt2.iloc[posicion2]['pt']
+            eta_prt1 = prt1.iloc[posicion1]['eta']
+            eta_prt2 = prt2.iloc[posicion2]['eta']
+            phi_prt1 = prt1.iloc[posicion1]['phi']
+            phi_prt2 = prt2.iloc[posicion2]['phi']
+            
+            pt1_x, pt1_y, pt1_z = momentum_vector(pt_prt1, phi_prt1, eta_prt1)
+            pt2_x, pt2_y, pt2_z = momentum_vector(pt_prt2, phi_prt2, eta_prt2)
+            
+            m_trans_sqrt = (np.sqrt(pt1_x**2 + pt1_y**2) + np.sqrt(pt2_x**2 + pt2_y**2))**2 - (pt1_x + pt2_x)**2 - (pt1_y + pt2_y)**2
+            
+            if m_trans_sqrt < 0:
+                m_trans_sqrt = 0
+            
+            m_trans = np.sqrt(m_trans_sqrt)
+            return m_trans
+        else:
+            return 0  # O cualquier valor que consideres apropiado
     return 0
 #DELTA R
  def Deltar(evento,comb):
@@ -593,23 +608,25 @@ else:
             elif comb[1][2] == 1:
                 prt2 = prt2[prt2['btag'].isin([1, 2])]
     if not prt1.empty and not prt2.empty:
-        # Obtener el pt del primer fotón y de la MET
-        #print(posicion1)
-        posicion1=comb[0][1]-1
-        posicion2=comb[1][1]-1
-        #print(prt1)
-        eta_prt1 = prt1.iloc[posicion1]['eta']
-        eta_prt2 = prt2.iloc[posicion2]['eta']
-        phi_prt1 = prt1.iloc[posicion1]['phi']
-        phi_prt2 = prt2.iloc[posicion2]['phi']
-        delta_phi=abs(phi_prt1-phi_prt2)
-        delta_eta=abs(eta_prt1-eta_prt2)
-        if delta_phi >  math.pi:
-                                delta_phi -= 2 *  math.pi
-        elif delta_phi < - math.pi:
-                                delta_phi += 2 *  math.pi
-
-        return np.sqrt(delta_eta**2 + delta_phi**2)
+        posicion1 = comb[0][1] - 1
+        posicion2 = comb[1][1] - 1
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+            eta_prt1 = prt1.iloc[posicion1]['eta']
+            eta_prt2 = prt2.iloc[posicion2]['eta']
+            phi_prt1 = prt1.iloc[posicion1]['phi']
+            phi_prt2 = prt2.iloc[posicion2]['phi']
+            
+            delta_phi = abs(phi_prt1 - phi_prt2)
+            delta_eta = abs(eta_prt1 - eta_prt2)
+            
+            if delta_phi > math.pi:
+                delta_phi -= 2 * math.pi
+            elif delta_phi < -math.pi:
+                delta_phi += 2 * math.pi
+            
+            return np.sqrt(delta_eta**2 + delta_phi**2)
+        else:
+            return 0 
     return 0
 #Ratio PT
  def RatioPt(evento,comb):
@@ -635,10 +652,13 @@ else:
         #print(posicion1)
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
         #print(prt1)
-        pt_prt1 = prt1.iloc[posicion1]['pt']
-        pt_prt2 = prt2.iloc[posicion2]['pt']
-        return pt_prt1/pt_prt2
+          pt_prt1 = prt1.iloc[posicion1]['pt']
+          pt_prt2 = prt2.iloc[posicion2]['pt']
+          return pt_prt1/pt_prt2
+        else:
+          return 0
     return 0
 #ProductEta
  def ProductEta(evento,comb):
@@ -661,13 +681,14 @@ else:
                 prt2 = prt2[prt2['btag'].isin([1, 2])]
     if not prt1.empty and not prt2.empty:
         # Obtener el pt del primer fotón y de la MET
-        #print(posicion1)
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
-        #print(prt1)
-        eta_prt1 = prt1.iloc[posicion1]['eta']
-        eta_prt2 = prt2.iloc[posicion2]['eta']
-        return eta_prt1*eta_prt2
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+          eta_prt1 = prt1.iloc[posicion1]['eta']
+          eta_prt2 = prt2.iloc[posicion2]['eta']
+          return eta_prt1*eta_prt2
+        else:
+          return 0
     return 0
 #MASA INVARIANTE
  def m_inv(evento, comb):
@@ -688,13 +709,20 @@ else:
     
     if all(not p.empty for p in prt):
         posiciones = [c[1] - 1 for c in comb]
-        pt = [p.iloc[pos]['pt'] for p, pos in zip(prt, posiciones)]
-        eta = [p.iloc[pos]['eta'] for p, pos in zip(prt, posiciones)]
-        phi = [p.iloc[pos]['phi'] for p, pos in zip(prt, posiciones)]
-        
+        pt = []
+        eta = []
+        phi = []
+        for p, pos in zip(prt, posiciones):
+          if pos < len(p):
+                pt.append(p.iloc[pos]['pt'])
+                eta.append(p.iloc[pos]['eta'])
+                phi.append(p.iloc[pos]['phi'])
+          else:
+                pt.append(0)
+                eta.append(0)
+                phi.append(0)
         momentum = [momentum_vector(pt[i], phi[i], eta[i]) for i in range(len(comb))]
         pt_x, pt_y, pt_z = zip(*momentum)
-        
         m_in_squared = (
             (sum(np.sqrt(px**2 + py**2 + pz**2) for px, py, pz in zip(pt_x, pt_y, pt_z)))**2 -
             sum(px for px in pt_x)**2 -
