@@ -49,12 +49,12 @@ mimetypes.add_type('csv', '.csv')
 
 #FUNCION PARA SELECCIONAR ARCHIVO SIGNAL
 def select_signal_file():
-    filepath = filedialog.askopenfilename(filetypes=[("Archivos CSV", "*.csv"), ("Archivos LHCO", "*.lhco")])
+    filepath = filedialog.askopenfilename(filetypes=[("LHCO Files", "*.lhco"), ("CSV Files", "*.csv")])
     if filepath:
         signal_listbox.insert(tk.END, filepath)
 #FUNCION PARA SELECCIONAR ARCHIVO BACKGROUND
 def add_background_file():
-    filepath = filedialog.askopenfilename(filetypes=[("Archivos CSV", "*.csv"), ("Archivos LHCO", "*.lhco")])
+    filepath = filedialog.askopenfilename(filetypes=[("LHCO Files", "*.lhco"), ("CSV Files", "*.csv")])
     if filepath:
         background_listbox.insert(tk.END, filepath)
 #FUNCION PARA ELIMINAR ARCHIVO SIGNAL SELECCIONADO
@@ -81,7 +81,7 @@ def generate_signal_csv():
             elif mime_type == 'csv':
                 data = pd.read_csv(i)
             else:
-                messagebox.showwarning("Advertencia", f"Tipo de archivo no soportado: {i}")
+                messagebox.showwarning("Warning", f"Unsupported file type: {i}")
                 continue  # Si el archivo no es LHCO o CSV, lo omite
 
             dfsg = pd.concat([dfsg, data], ignore_index=True)
@@ -92,15 +92,15 @@ def generate_signal_csv():
             dfsg.loc[mask, dfsg.columns != '#'] = 10.0
             filtered_dfsg = dfsg.copy()
         else:
-            messagebox.showwarning("Advertencia", "La columna '#' no existe en los datos de SIGNAL")
+            messagebox.showwarning("Warning", "The column '#' does not exist in the SIGNAL data")
 
         # Guardar el CSV
         save_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
         if save_path:
             filtered_dfsg.to_csv(save_path, index=False)
-            messagebox.showinfo("Éxito", f"Archivo de SIGNAL guardado en: {save_path}")
+            messagebox.showinfo("Success", f"SIGNAL file saved at: {save_path}")
     else:
-        messagebox.showwarning("Advertencia", "No se seleccionaron archivos de SIGNAL.")
+        messagebox.showwarning("Warning", "No SIGNAL files were selected.")
 #FUNCION PARA GENERAR ARCHIVO CSV DE BACKGROUND
 def generate_background_csv():
     global filtered_dfbg
@@ -115,7 +115,7 @@ def generate_background_csv():
             elif mime_type == 'csv':
                 data = pd.read_csv(i)
             else:
-                messagebox.showwarning("Advertencia", f"Tipo de archivo no soportado: {i}")
+                messagebox.showwarning("Warning", f"Unsupported file type: {i}")
                 continue  # Si el archivo no es LHCO o CSV, lo omite
 
             dfbg = pd.concat([dfbg, data], ignore_index=True)
@@ -126,93 +126,85 @@ def generate_background_csv():
             dfbg.loc[mask, dfbg.columns != '#'] = 10.0
             filtered_dfbg = dfbg.copy()
         else:
-            messagebox.showwarning("Advertencia", "La columna '#' no existe en los datos de BACKGROUND")
+            messagebox.showwarning("Warning", "The column '#' does not exist in the BACKGROUND data")
 
         # Guardar el CSV
         save_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
         if save_path:
             filtered_dfbg.to_csv(save_path, index=False)
-            messagebox.showinfo("Éxito", f"Archivo de BACKGROUND guardado en: {save_path}")
+            messagebox.showinfo("Success", f"BACKGROUND file saved at: {save_path}")
     else:
-        messagebox.showwarning("Advertencia", "No se seleccionaron archivos de BACKGROUND.")
+        messagebox.showwarning("Warning", "No BACKGROUND files were selected.")
 
 root = tk.Tk()
-root.title("Interfaz de Análisis de Eventos")
+root.title("Event Analysis Interface")
 root.geometry("550x800")
 
-# Crear estilo de botones
+# Create button style
 style = ttk.Style()
 style.configure("TButton", font=("Segoe UI", 8), padding=3)
 
-# Crear pestañas
+# Create tabs
 tab_control = ttk.Notebook(root)
 tab1 = ttk.Frame(tab_control)
 tab2 = ttk.Frame(tab_control)
 tab3 = ttk.Frame(tab_control)
 tab4 = ttk.Frame(tab_control)
 tab5 = ttk.Frame(tab_control)
-tab_control.add(tab1, text='Carga de archivos')
-tab_control.add(tab2, text='Partículas a analizar')
-tab_control.add(tab3, text='Cálculo y Análisis')
-tab_control.add(tab4, text='Entrenamiento de Modelos')
-tab_control.add(tab5, text='Significancia')
-
+tab_control.add(tab1, text='File Upload')
+tab_control.add(tab2, text='Particles to Analyze')
+tab_control.add(tab3, text='Calculation and Analysis')
+tab_control.add(tab4, text='Model Training')
+tab_control.add(tab5, text='Significance')
 tab_control.pack(expand=1, fill='both')
 
-# Contenido de la primera pestaña
-signal_label = ttk.Label(tab1, text="Archivos SIGNAL:")
-signal_label.pack(pady=5)
+# ----------- Frame: Archivos de Señal ----------- #
+frame1_signal = ttk.LabelFrame(tab1, text="SIGNAL Files", padding=10)
+frame1_signal.pack(fill="x", padx=10, pady=10)
 
-signal_frame = ttk.Frame(tab1)
-signal_frame.pack(pady=5)
+signal_row = ttk.Frame(frame1_signal)
+signal_row.pack(pady=5)
 
-# Crear Listbox y Scrollbar para SIGNAL
-signal_listbox = tk.Listbox(signal_frame, width=40, height=6)
-signal_listbox.pack(side=tk.LEFT, padx=(0, 5))
+# Listbox + Scrollbar
+signal_listbox = tk.Listbox(signal_row, width=40, height=6)
+signal_listbox.pack(side="left", padx=(0, 5))
 
-signal_scrollbar = ttk.Scrollbar(signal_frame, orient=tk.VERTICAL, command=signal_listbox.yview)
-signal_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+signal_scrollbar = ttk.Scrollbar(signal_row, orient=tk.VERTICAL, command=signal_listbox.yview)
+signal_scrollbar.pack(side="left", fill=tk.Y)
 
 signal_listbox.config(yscrollcommand=signal_scrollbar.set)
 
-signal_buttons_frame = ttk.Frame(signal_frame)
-signal_buttons_frame.pack(side=tk.LEFT)
+# Botones para SIGNAL
+signal_buttons = ttk.Frame(signal_row)
+signal_buttons.pack(side="left", padx=5)
 
-signal_button = ttk.Button(signal_buttons_frame, text="Buscar Archivo", command=select_signal_file)
-signal_button.pack(pady=2)
+ttk.Button(signal_buttons, text="Browse File", command=select_signal_file).pack(pady=2)
+ttk.Button(signal_buttons, text="Remove File", command=remove_selected_signal).pack(pady=2)
+ttk.Button(signal_buttons, text="Generate Signal", command=generate_signal_csv).pack(pady=2)
 
-remove_button = ttk.Button(signal_buttons_frame, text="Eliminar Archivo", command=remove_selected_signal)
-remove_button.pack(pady=2)
+# ----------- Frame: Archivos de Background ----------- #
+frame1_background = ttk.LabelFrame(tab1, text="BACKGROUND Files", padding=10)
+frame1_background.pack(fill="x", padx=10, pady=10)
 
-signalcsv_button = ttk.Button(signal_buttons_frame, text="Generar Signal", command=generate_signal_csv)
-signalcsv_button.pack(pady=2)
+background_row = ttk.Frame(frame1_background)
+background_row.pack(pady=5)
 
-background_label = ttk.Label(tab1, text="Archivos BACKGROUND:")
-background_label.pack(pady=5)
+# Listbox + Scrollbar
+background_listbox = tk.Listbox(background_row, width=40, height=6)
+background_listbox.pack(side="left", padx=(0, 5))
 
-background_frame = ttk.Frame(tab1)
-background_frame.pack(pady=5)
-
-# Crear Listbox y Scrollbar para BACKGROUND
-background_listbox = tk.Listbox(background_frame, width=40, height=6)
-background_listbox.pack(side=tk.LEFT, padx=(0, 5))
-
-background_scrollbar = ttk.Scrollbar(background_frame, orient=tk.VERTICAL, command=background_listbox.yview)
-background_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+background_scrollbar = ttk.Scrollbar(background_row, orient=tk.VERTICAL, command=background_listbox.yview)
+background_scrollbar.pack(side="left", fill=tk.Y)
 
 background_listbox.config(yscrollcommand=background_scrollbar.set)
 
-background_buttons_frame = ttk.Frame(background_frame)
-background_buttons_frame.pack(side=tk.LEFT)
+# Botones para BACKGROUND
+background_buttons = ttk.Frame(background_row)
+background_buttons.pack(side="left", padx=5)
 
-background_button = ttk.Button(background_buttons_frame, text="Buscar Archivo", command=add_background_file)
-background_button.pack(pady=2)
-
-remove_button_bg = ttk.Button(background_buttons_frame, text="Eliminar Archivo", command=remove_selected_background)
-remove_button_bg.pack(pady=2)
-
-generatecsv_button = ttk.Button(background_buttons_frame, text="Generar Background", command=generate_background_csv)
-generatecsv_button.pack(pady=2)
+ttk.Button(background_buttons, text="Browse File", command=add_background_file).pack(pady=2)
+ttk.Button(background_buttons, text="Remove File", command=remove_selected_background).pack(pady=2)
+ttk.Button(background_buttons, text="Generate Background", command=generate_background_csv).pack(pady=2)
 
 # Contenido de la segunda pestaña
 
@@ -276,16 +268,16 @@ def add_particle():
         cantidad = int(entry_quantity.get())
         particula = particle_choice.get()
         if cantidad <= 0:
-            raise ValueError("La cantidad debe ser mayor a 0.")
+            raise ValueError("Quantity must be greater than 0.")
         lista.append((cantidad, particula))
         lista_box.insert(tk.END, f"{cantidad} {particula}")
     except ValueError as e:
-        messagebox.showerror("Error", f"Entrada inválida: {e}")
+        messagebox.showerror("Error", f"Invalid input: {e}")
 #FUNCION PARA ELIMINAR PARTICULAS SELECCIONADAS
 def remove_selected_particle():
     selected_indices = lista_box.curselection()
     if not selected_indices:
-        messagebox.showwarning("Advertencia", "No se seleccionó ninguna partícula.")
+        messagebox.showwarning("Warning", "No particle selected.")
         return
     for index in reversed(selected_indices):
         lista.pop(index)
@@ -331,7 +323,7 @@ def overwrite_pares():
     # Obtener las combinaciones seleccionadas en formato nombres
     selected_names = [comb_pares_names[i] for i in selected_indices]
     if not selected_names:
-        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        messagebox.showwarning("Warning", "No combination has been selected.")
         return
     
     # Mapear las combinaciones seleccionadas de nombres a valores numéricos
@@ -348,7 +340,7 @@ def overwrite_pares():
     for name in comb_pares_names:
         comb_pares_listbox.insert(tk.END, name)
 
-    messagebox.showinfo("Éxito", "La lista de combinaciones de pares ha sido sobrescrita correctamente.")
+    messagebox.showinfo("Success", "The pair combinations list has been successfully overwritten.")
 
 def overwrite_trios():
     global comb_trios_names, combinaciones_trios
@@ -357,7 +349,7 @@ def overwrite_trios():
     # Obtener las combinaciones seleccionadas en formato nombres
     selected_names = [comb_trios_names[i] for i in selected_indices]
     if not selected_names:
-        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        messagebox.showwarning("Warning", "No combination has been selected.")
         return
     
     # Mapear las combinaciones seleccionadas de nombres a valores numéricos
@@ -374,7 +366,7 @@ def overwrite_trios():
     for name in comb_trios_names:
         comb_trios_listbox.insert(tk.END, name)
 
-    messagebox.showinfo("Éxito", "La lista de combinaciones de tríos ha sido sobrescrita correctamente.")
+    messagebox.showinfo("Success", "The trio combinations list has been successfully overwritten.")
 
 def overwrite_cuartetos():
     global comb_cuartetos_names, combinaciones_cuartetos
@@ -383,7 +375,7 @@ def overwrite_cuartetos():
     # Obtener las combinaciones seleccionadas en formato nombres
     selected_names = [comb_cuartetos_names[i] for i in selected_indices]
     if not selected_names:
-        messagebox.showwarning("Advertencia", "No se ha seleccionado ninguna combinación.")
+        messagebox.showwarning("Warning", "No combination has been selected.")
         return
     
     # Mapear las combinaciones seleccionadas de nombres a valores numéricos
@@ -400,119 +392,116 @@ def overwrite_cuartetos():
     for name in comb_cuartetos_names:
         comb_cuartetos_listbox.insert(tk.END, name)
 
-    messagebox.showinfo("Éxito", "La lista de combinaciones de cuartetos ha sido sobrescrita correctamente.")
+    messagebox.showinfo("Success", "The quartet combinations list has been successfully overwritten.")
 
-tk.Label(tab2, text="Ingrese la cantidad y tipo de partícula del estado final que deseas analizar:").pack()
+# ----------- Frame: Entrada de partículas ----------- #
+frame2_input = ttk.LabelFrame(tab2, text="Add Final State Particles", padding=10)
+frame2_input.pack(fill="x", padx=10, pady=10)
 
-frame_input = tk.Frame(tab2)
-frame_input.pack()
+ttk.Label(frame2_input, text="Enter the quantity and type of the final state particle you want to analyze:").pack(anchor="w", pady=(0, 5))
 
-entry_quantity = tk.Entry(frame_input, width=10)
-entry_quantity.pack(side=tk.LEFT)
-particle_choice = tk.StringVar()
-particle_choice.set("a")
-option_menu = tk.OptionMenu(frame_input, particle_choice, *particulas_dict.keys())
-option_menu.pack(side=tk.LEFT)
+row_input = ttk.Frame(frame2_input)
+row_input.pack(fill="x", pady=5)
 
-add_button = tk.Button(frame_input, text="Añadir Partícula", command=add_particle)
-add_button.pack(side=tk.LEFT)
+entry_quantity = ttk.Entry(row_input, width=10)
+entry_quantity.pack(side="left", padx=(0, 5))
 
-remove_button = tk.Button(frame_input, text="Eliminar Partícula", command=remove_selected_particle)
-remove_button.pack(side=tk.LEFT)
+particle_choice = tk.StringVar(value="a")
+option_menu = ttk.OptionMenu(row_input, particle_choice, *particulas_dict.keys())
+option_menu.pack(side="left", padx=(0, 5))
 
-frame_lista_box = tk.Frame(tab2)
-frame_lista_box.pack()
+ttk.Button(row_input, text="Add Particle", command=add_particle).pack(side="left", padx=(0, 5))
+ttk.Button(row_input, text="Remove Particle", command=remove_selected_particle).pack(side="left", padx=(0, 5))
 
-scrollbar_lista = tk.Scrollbar(frame_lista_box, orient=tk.VERTICAL)
-scrollbar_lista.pack(side=tk.RIGHT, fill=tk.Y)
+# ----------- Frame: Lista de partículas agregadas ----------- #
+frame2_lista = ttk.LabelFrame(tab2, text="Particle List", padding=10)
+frame2_lista.pack(fill="x", padx=10, pady=10)
 
-lista_box = tk.Listbox(frame_lista_box, width=50, height=5, yscrollcommand=scrollbar_lista.set, selectmode=tk.MULTIPLE)
-lista_box.pack(side=tk.LEFT, fill=tk.BOTH)
+lista_frame = ttk.Frame(frame2_lista)
+lista_frame.pack(fill="x")
+
+scrollbar_lista = ttk.Scrollbar(lista_frame, orient=tk.VERTICAL)
+scrollbar_lista.pack(side="right", fill=tk.Y)
+
+lista_box = tk.Listbox(lista_frame, width=50, height=5, yscrollcommand=scrollbar_lista.set, selectmode=tk.MULTIPLE)
+lista_box.pack(side="left", fill=tk.BOTH, expand=True)
 
 scrollbar_lista.config(command=lista_box.yview)
 
-# Formatted explanation text
-explanation_text = (
-    "La lista final de partículas numeradas tiene el formato: [(x, y)] donde:\n"
-    "- x  es el tipo de la partícula.\n"
-    "- y  su posición energética.\n"
-)
-ttk.Label(tab2, text=explanation_text, justify="left").pack(pady=10)
+# Texto explicativo
+ttk.Label(tab2, text=(
+    "The final list of numbered particles has the following format: [(x, y)] where:\n"
+    "- x is the type of the particle.\n"
+    "- y is its energy position.\n"
+), justify="left").pack(padx=10, pady=(5, 10), anchor="w")
 
 # Botón para analizar
-analyze_button = ttk.Button(tab2, text="Analizar", command=analyze_particles)
-analyze_button.pack()
+ttk.Button(tab2, text="Analyze", command=analyze_particles).pack(pady=(0, 10))
 
-explanation_text_2 = (
-    "Seleccióne las tuplas, trios y cuartetos de particulas que sean de su interes\n"
-    "esto hara más rapido el cálculo si no se desean analizar todas.\n"
-)
-ttk.Label(tab2, text=explanation_text_2, justify="left").pack(pady=10)
+# Segundo texto explicativo
+ttk.Label(tab2, text=(
+    "Select the tuples, triplets, and quartets of particles that are of interest to you.\n"
+    "This will speed up the calculation if you don't want to analyze all of them."
+), justify="left").pack(padx=10, pady=(0, 10), anchor="w")
 
-# Crear un frame para las combinaciones de pares
-frame_comb_pares = ttk.Frame(tab2, padding=10)
-frame_comb_pares.pack(pady=5, fill=tk.X)
+# ----------- Frame: Combinaciones de Pares ----------- #
+frame2_pares = ttk.LabelFrame(tab2, text="Pair Combinations", padding=10)
+frame2_pares.pack(fill="x", padx=10, pady=5)
 
-# Label para "Pares" centrado
-ttk.Label(frame_comb_pares, text="Combinaciones de Pares:", anchor="center").pack(pady=5)
+pares_frame = ttk.Frame(frame2_pares)
+pares_frame.pack(fill="x")
 
-# Listbox, Scrollbar y Botón para "Pares"
-listbox_pares_frame = ttk.Frame(frame_comb_pares)
-listbox_pares_frame.pack(pady=5)
+comb_pares_listbox = tk.Listbox(pares_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_pares_listbox.pack(side="left")
 
-comb_pares_listbox = tk.Listbox(listbox_pares_frame, width=50, height=5, selectmode=tk.MULTIPLE)
-comb_pares_listbox.pack(side=tk.LEFT)
-
-comb_pares_scrollbar = ttk.Scrollbar(listbox_pares_frame, orient=tk.VERTICAL, command=comb_pares_listbox.yview)
-comb_pares_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_pares_scrollbar = ttk.Scrollbar(pares_frame, orient=tk.VERTICAL, command=comb_pares_listbox.yview)
+comb_pares_scrollbar.pack(side="left", fill=tk.Y)
 comb_pares_listbox.config(yscrollcommand=comb_pares_scrollbar.set)
 
-ttk.Button(listbox_pares_frame, text="Sobrescribir Lista", command=overwrite_pares).pack(side=tk.LEFT, padx=10)
+ttk.Button(pares_frame, text="Overwrite List", command=overwrite_pares).pack(side="left", padx=10)
 
-# Crear un frame para las combinaciones de tríos
-frame_comb_trios = ttk.Frame(tab2, padding=10)
-frame_comb_trios.pack(pady=5, fill=tk.X)
+# ----------- Frame: Combinaciones de Tríos ----------- #
+frame2_trios = ttk.LabelFrame(tab2, text="Triplet Combinations", padding=10)
+frame2_trios.pack(fill="x", padx=10, pady=5)
 
-# Label para "Tríos" centrado
-ttk.Label(frame_comb_trios, text="Combinaciones de Tríos:", anchor="center").pack(pady=5)
+trios_frame = ttk.Frame(frame2_trios)
+trios_frame.pack(fill="x")
 
-# Listbox, Scrollbar y Botón para "Tríos"
-listbox_trios_frame = ttk.Frame(frame_comb_trios)
-listbox_trios_frame.pack(pady=5)
+comb_trios_listbox = tk.Listbox(trios_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_trios_listbox.pack(side="left")
 
-comb_trios_listbox = tk.Listbox(listbox_trios_frame, width=50, height=5, selectmode=tk.MULTIPLE)
-comb_trios_listbox.pack(side=tk.LEFT)
-
-comb_trios_scrollbar = ttk.Scrollbar(listbox_trios_frame, orient=tk.VERTICAL, command=comb_trios_listbox.yview)
-comb_trios_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_trios_scrollbar = ttk.Scrollbar(trios_frame, orient=tk.VERTICAL, command=comb_trios_listbox.yview)
+comb_trios_scrollbar.pack(side="left", fill=tk.Y)
 comb_trios_listbox.config(yscrollcommand=comb_trios_scrollbar.set)
 
-ttk.Button(listbox_trios_frame, text="Sobrescribir Lista", command=overwrite_trios).pack(side=tk.LEFT, padx=10)
+ttk.Button(trios_frame, text="Overwrite List", command=overwrite_trios).pack(side="left", padx=10)
 
-# Crear un frame para las combinaciones de cuartetos
-frame_comb_cuartetos = ttk.Frame(tab2, padding=10)
-frame_comb_cuartetos.pack(pady=5, fill=tk.X)
+# ----------- Frame: Combinaciones de Cuartetos ----------- #
+frame2_cuartetos = ttk.LabelFrame(tab2, text="Quartet Combinations", padding=10)
+frame2_cuartetos.pack(fill="x", padx=10, pady=5)
 
-# Label para "Cuartetos" centrado
-ttk.Label(frame_comb_cuartetos, text="Combinaciones de Cuartetos:", anchor="center").pack(pady=5)
+cuartetos_frame = ttk.Frame(frame2_cuartetos)
+cuartetos_frame.pack(fill="x")
 
-# Listbox, Scrollbar y Botón para "Cuartetos"
-listbox_cuartetos_frame = ttk.Frame(frame_comb_cuartetos)
-listbox_cuartetos_frame.pack(pady=5)
+comb_cuartetos_listbox = tk.Listbox(cuartetos_frame, width=50, height=5, selectmode=tk.MULTIPLE)
+comb_cuartetos_listbox.pack(side="left")
 
-comb_cuartetos_listbox = tk.Listbox(listbox_cuartetos_frame, width=50, height=5, selectmode=tk.MULTIPLE)
-comb_cuartetos_listbox.pack(side=tk.LEFT)
-
-comb_cuartetos_scrollbar = ttk.Scrollbar(listbox_cuartetos_frame, orient=tk.VERTICAL, command=comb_cuartetos_listbox.yview)
-comb_cuartetos_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+comb_cuartetos_scrollbar = ttk.Scrollbar(cuartetos_frame, orient=tk.VERTICAL, command=comb_cuartetos_listbox.yview)
+comb_cuartetos_scrollbar.pack(side="left", fill=tk.Y)
 comb_cuartetos_listbox.config(yscrollcommand=comb_cuartetos_scrollbar.set)
 
-ttk.Button(listbox_cuartetos_frame, text="Sobrescribir Lista", command=overwrite_cuartetos).pack(side=tk.LEFT, padx=10)
+ttk.Button(cuartetos_frame, text="Overwrite List", command=overwrite_cuartetos).pack(side="left", padx=10)
 
 ##### Aqui inicia la tercer pestaña
 
 #FUNCION PARA FILTRAR LOS EVENTOS
 def filtrar_eventos(df, num_list):
+    global progress_bar_f, progress_var_f
+
+    # Mostrar barra al iniciar
+    progress_bar_f["value"] = 0
+    progress_bar_f.update()
+
     try:
         event_indices = []
         current_event = []
@@ -520,29 +509,42 @@ def filtrar_eventos(df, num_list):
         num_list_first_elements = [t[0] for t in num_list]
         num_list_first_third_elements = [(t[0], t[2]) for t in num_list]
         total_rows = len(df)
-        with tqdm(total=total_rows, desc="Filtrando eventos") as pbar:
-            for i, row in df.iterrows():
-                if row['#'] == 0:
-                    if current_event:
-                        event_typ_counts = [r['typ'] for r in current_event]
-                        event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
-                        if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
-                            if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                                event_indices.extend(current_event)
-                    current_event = []
-                    current_event_number = row['#']
-                current_event.append(row)
-                pbar.update(1)
-            if current_event:
-                event_typ_counts = [r['typ'] for r in current_event]
-                event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
-                if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
-                    if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                        event_indices.extend(current_event)
+
+        for i, row in df.iterrows():
+            if row['#'] == 0:
+                if current_event:
+                    event_typ_counts = [r['typ'] for r in current_event]
+                    event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+                    if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
+                        if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
+                            event_indices.extend(current_event)
+                current_event = []
+                current_event_number = row['#']
+            current_event.append(row)
+
+            # Actualizar barra de progreso
+            progress = ((i + 1) / total_rows) * 100
+            progress_var_f.set(progress)
+            progress_bar_f.update()
+
+        # Último evento
+        if current_event:
+            event_typ_counts = [r['typ'] for r in current_event]
+            event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+            if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
+                if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
+                    event_indices.extend(current_event)
+
+        # Ocultar barra al finalizar (opcional)
+        progress_var_f.set(0)
+        progress_bar_f.update()
+
         return pd.DataFrame(event_indices)
+
     except Exception as e:
-        print(f"Error durante el filtrado de eventos: {e}")
+        messagebox.showerror("Error", f"Error during event filtering: {e}")
         return pd.DataFrame()
+    
 #FUNCION PARA PROCESAR LOS EVENTOS EN BLOQUES
 def procesar_en_bloques(df, num_list, bloque_tamano=10000):
     total_filas = len(df)
@@ -634,11 +636,10 @@ def RatioPt(evento,comb):
                 prt2 = prt2[prt2['btag'].isin([1, 2])]
     if not prt1.empty and not prt2.empty:
         # Obtener el pt del primer fotón y de la MET
-        #print(posicion1)
         posicion1=comb[0][1]-1
         posicion2=comb[1][1]-1
         if posicion1 < len(prt1) and posicion2 < len(prt2):
-        #print(prt1)
+        # Obtener el pt del primer fotón y de la MET
           pt_prt1 = prt1.iloc[posicion1]['pt']
           pt_prt2 = prt2.iloc[posicion2]['pt']
           return pt_prt1/pt_prt2
@@ -710,7 +711,7 @@ def eta_part(evento,listapart):
         elif listapart[2] == 1:
             prt = prt[prt['btag'].isin([1, 2])]
     if not prt.empty:
-    	posicion=listapart[1]-1
+        posicion = listapart[1] - 1
         if posicion < len(prt):
             eta_prt = prt.iloc[posicion]['eta']
             return eta_prt
@@ -831,6 +832,8 @@ def m_inv(evento, comb):
     return 0
 #FUNCION PARA CALCULAR LOS EVENTOS
 def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos, batch_size=300):
+    global progress_bar_c, progress_var_c
+
     masainv = []
     masainv_trios = []
     masainv_cuartetos = []
@@ -840,105 +843,111 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     pt = []
     phi = []
     eta = []
-    X_eta=[]
-    Ratio_pt=[]
+    X_eta = []
+    Ratio_pt = []
 
-    total_batches = (len(df) + batch_size - 1) // batch_size  # Calcular el número total de lotes
-    with tqdm(total=total_batches, desc="Calculando eventos") as pbar:
-        start = 0
-        while start < len(df):
-            end = start + batch_size
-            # Ajustar el final del lote para no cortar eventos a la mitad
-            while end < len(df) and df.iloc[end]['#'] != 0:
-                end += 1
+    total_batches = (len(df) + batch_size - 1) // batch_size
+    start = 0
+    batch_index = 0
 
-            batch_df = df.iloc[start:end]
-            current_event = []
-            current_event_number = None
+    # Mostrar barra al iniciar
+    progress_bar_c["value"] = 0
+    progress_bar_c.update()
 
-            for i, row in batch_df.iterrows():
-                if row['#'] == 0:
-                    if current_event:
-                        event_df = pd.DataFrame(current_event)
-                        no_jets.append(Num_jets(event_df))
-                        for i in combinaciones_cuartetos:
-                            masainv_cuartetos.append(m_inv(event_df, i))
-                        for i in combinaciones_trios:
-                            masainv_trios.append(m_inv(event_df, i))
-                        for i in lista_num_mod:
-                            pt.append(pt_part(event_df, i))
-                            eta.append(eta_part(event_df, i))
-                            phi.append(phi_part(event_df, i))
-                        for i in combinaciones_pares:
-                                masainv.append(m_inv(event_df, i))
-                        for i in combinaciones_pares:
-                            masatrans.append(m_trans(event_df, i))
-                        for i in combinaciones_pares:
-                            deltar.append(Deltar(event_df, i))
-                        for i in combinaciones_pares:
-                                Ratio_pt.append(RatioPt(event_df, i))
-                        for i in combinaciones_pares:
-                                X_eta.append(ProductEta(event_df, i))
-                    current_event = []
-                    current_event_number = row['#']
-                current_event.append(row)
+    while start < len(df):
+        end = start + batch_size
+        while end < len(df) and df.iloc[end]['#'] != 0:
+            end += 1
 
-            if current_event:
-                event_df = pd.DataFrame(current_event)
-                no_jets.append(Num_jets(event_df))
-                for i in combinaciones_cuartetos:
-                    masainv_cuartetos.append(m_inv(event_df, i))
-                for i in combinaciones_trios:
-                    masainv_trios.append(m_inv(event_df, i))
-                for i in lista_num_mod:
-                    pt.append(pt_part(event_df, i))
-                    eta.append(eta_part(event_df, i))
-                    phi.append(phi_part(event_df, i))
-                for i in combinaciones_pares:
+        batch_df = df.iloc[start:end]
+        current_event = []
+        current_event_number = None
+
+        for _, row in batch_df.iterrows():
+            if row['#'] == 0:
+                if current_event:
+                    event_df = pd.DataFrame(current_event)
+                    no_jets.append(Num_jets(event_df))
+                    for i in combinaciones_cuartetos:
+                        masainv_cuartetos.append(m_inv(event_df, i))
+                    for i in combinaciones_trios:
+                        masainv_trios.append(m_inv(event_df, i))
+                    for i in lista_num_mod:
+                        pt.append(pt_part(event_df, i))
+                        eta.append(eta_part(event_df, i))
+                        phi.append(phi_part(event_df, i))
+                    for i in combinaciones_pares:
                         masainv.append(m_inv(event_df, i))
-                for i in combinaciones_pares:
                         masatrans.append(m_trans(event_df, i))
-                for i in combinaciones_pares:
                         deltar.append(Deltar(event_df, i))
-                for i in combinaciones_pares:
                         Ratio_pt.append(RatioPt(event_df, i))
-                for i in combinaciones_pares:
                         X_eta.append(ProductEta(event_df, i))
+                current_event = []
+                current_event_number = row['#']
+            current_event.append(row)
 
-            start = end
-            pbar.update(1)  # Actualizar la barra de progreso
+        if current_event:
+            event_df = pd.DataFrame(current_event)
+            no_jets.append(Num_jets(event_df))
+            for i in combinaciones_cuartetos:
+                masainv_cuartetos.append(m_inv(event_df, i))
+            for i in combinaciones_trios:
+                masainv_trios.append(m_inv(event_df, i))
+            for i in lista_num_mod:
+                pt.append(pt_part(event_df, i))
+                eta.append(eta_part(event_df, i))
+                phi.append(phi_part(event_df, i))
+            for i in combinaciones_pares:
+                masainv.append(m_inv(event_df, i))
+                masatrans.append(m_trans(event_df, i))
+                deltar.append(Deltar(event_df, i))
+                Ratio_pt.append(RatioPt(event_df, i))
+                X_eta.append(ProductEta(event_df, i))
+
+        # Actualizar barra de progreso
+        batch_index += 1
+        progress = (batch_index / total_batches) * 100
+        progress_var_c.set(progress)
+        progress_bar_c.update()
+
+        start = end
+
+    # Ocultar barra al terminar (opcional)
+    progress_var_c.set(0)
+    progress_bar_c.update()
+
+    masainv_trios = np.array(masainv_trios)
+    if masainv_trios.size > 0:
+        a = int(len(masainv_trios) / len(combinaciones_trios))
+        masainv_trios = masainv_trios.reshape(a, -1)
+    masainv_cuartetos = np.array(masainv_cuartetos)
+    if masainv_cuartetos.size > 0:
+        a = int(len(masainv_cuartetos) / len(combinaciones_cuartetos))
+        masainv_cuartetos = masainv_cuartetos.reshape(a, -1)
+    deltar = np.array(deltar)
+    if deltar.size > 0:
+        a = int(len(deltar) / len(combinaciones_pares))
+        deltar = deltar.reshape(a, -1)
     X_eta = np.array(X_eta)
     if X_eta.size > 0:
-        a = int(len(X_eta) / len(combinaciones_pares_prdeta))
+        a = int(len(X_eta) / len(combinaciones_pares))
         X_eta = X_eta.reshape(a, -1)
     Ratio_pt = np.array(Ratio_pt)
     if Ratio_pt.size > 0:
-        a = int(len(Ratio_pt) / len(combinaciones_pares_ratiopt))
+        a = int(len(Ratio_pt) / len(combinaciones_pares))
         Ratio_pt = Ratio_pt.reshape(a, -1)
-    masainv_trios = np.array(masainv_trios)
-    if masainv_trios.size > 0:
-        g = int(len(masainv_trios) / len(combinaciones_trios))
-        masainv_trios = masainv_trios.reshape(g, -1)
-    masainv_cuartetos = np.array(masainv_cuartetos)
-    if masainv_cuartetos.size > 0:
-        h = int(len(masainv_cuartetos) / len(combinaciones_cuartetos))
-        masainv_cuartetos = masainv_cuartetos.reshape(h, -1)
-    deltar = np.array(deltar)
-    if deltar.size > 0:
-        f = int(len(deltar) / len(combinaciones_pares))
-        deltar = deltar.reshape(f, -1)
     phi = np.array(phi)
     if phi.size > 0:
-        d = int(len(phi) / len(lista_num))
-        phi = phi.reshape(d, -1)
+        a = int(len(phi) / len(lista_num))
+        phi = phi.reshape(a, -1)
     eta = np.array(eta)
     if eta.size > 0:
-        e = int(len(eta) / len(lista_num))
-        eta = eta.reshape(e, -1)
+        a = int(len(eta) / len(lista_num))
+        eta = eta.reshape(a, -1)
     pt = np.array(pt)
     if pt.size > 0:
-        c = int(len(pt) / len(lista_num))
-        pt = pt.reshape(c, -1)
+        a = int(len(pt) / len(lista_num))
+        pt = pt.reshape(a, -1)
     masainv = np.array(masainv)
     if masainv.size > 0:
         a = int(len(masainv) / len(combinaciones_pares))
@@ -978,14 +987,13 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     for i in comb_cuartetos_names:
         cadena = tupla_a_cadena(i)
         columcuartetos.append('m_inv ' + cadena)
-    for i in comb_pares_names_ratiopt:
+    for i in comb_pares_names:
         cadena = tupla_a_cadena(i)
         columpares3.append('PT1/PT2'+ cadena)
-    for i in comb_pares_names_prdeta:
+    for i in comb_pares_names:
         cadena = tupla_a_cadena(i)
         columpares4.append('Eta1*Eta2' + cadena)
 
-    # Crear DataFrames solo si los arrays no están vacíos
     csv_columtrios = pd.DataFrame(masainv_trios, columns=columtrios) if masainv_trios.size > 0 else pd.DataFrame()
     csv_columcuartetos = pd.DataFrame(masainv_cuartetos, columns=columcuartetos) if masainv_cuartetos.size > 0 else pd.DataFrame()
     csv_deltar = pd.DataFrame(deltar, columns=columpares2) if deltar.size > 0 else pd.DataFrame()
@@ -999,61 +1007,51 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     # Concatenar solo los DataFrames que no están vacíos
     csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos,csv_ratiopt,csv_prdeta], axis=1)
     csv_combined["No_jets"] = no_jets
-    #print(no_jets)
     return csv_combined
 
 #FUNCION PARA FILTRAR LOS EVENTOS
 def on_filtrar_eventos():
-    global filtered_dfbg, filtered_dfsg
+    global filtered_dfsg
 
     # Preguntar al usuario si desea cargar un archivo filtrado en lugar de hacer el filtrado
-    choice = messagebox.askyesno("Cargar archivo", "¿Deseas cargar un archivo filtrado en lugar de procesarlo?")
+    choice = messagebox.askyesno("Load SIGNAL file", "Do you want to load a filtered SIGNAL file instead of processing it?")
     
     if choice:  # Si elige "Sí", permite cargar los archivos
-        file_bg = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Cargar BG filtrado")
-        file_sg = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Cargar Signal filtrado")
+        file_sg = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Load filtered SIGNAL")
         
-        if file_bg and file_sg:
+        if file_sg:
             try:
-                filtered_dfbg = pd.read_csv(file_bg)
                 filtered_dfsg = pd.read_csv(file_sg)
-                messagebox.showinfo("Éxito", "Archivos filtrados cargados correctamente.")
+                messagebox.showinfo("Success", "Filtered file loaded successfully.")
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo cargar los archivos: {e}")
-        else:
-            messagebox.showwarning("Advertencia", "No se seleccionaron ambos archivos. Se canceló la carga.")
+                messagebox.showerror("Error", f"Failed to load the file: {e}")
         return  # Salir de la función si ya se cargaron los archivos
 
     # Si no se cargan archivos, proceder con el filtrado normal
-    if filtered_dfbg is None or filtered_dfsg is None:
-        messagebox.showerror("Error", "No se han cargado los DataFrames. Asegúrese de haberlos generado antes de filtrar.")
+    if filtered_dfsg is None:
+        messagebox.showerror("Error", "The DataFrames have not been loaded. Make sure they have been generated before filtering.")
         return
 
     filtrar_btn.config(state=tk.DISABLED)  # Deshabilitar botón mientras se filtra
-    messagebox.showinfo("Información", "Iniciando el proceso de filtrado...")
+    messagebox.showinfo("Information", "Starting the filtering process...")
 
     def ejecutar_filtrado():
-        global filtered_dfbg, filtered_dfsg
+        global filtered_dfsg
 
         try:
-            file_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar Signal filtrado")
-            file_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar BG filtrado")
-
-            if not file_bg or not file_sg:
-                messagebox.showerror("Error", "Debe seleccionar nombres para los archivos filtrados.")
+            file_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save Filtered SIGNAL")
+            if not file_sg:
+                messagebox.showerror("Error", "You must select names for the filtered file.")
                 return
 
             # Filtrar en bloques
-            filtered_dfbg = procesar_en_bloques(filtered_dfbg, lista_num_mod, bloque_tamano=100000)
-            filtered_dfbg.to_csv(file_bg, index=False)
-
             filtered_dfsg = procesar_en_bloques(filtered_dfsg, lista_num_mod, bloque_tamano=100000)
             filtered_dfsg.to_csv(file_sg, index=False)
 
-            messagebox.showinfo("Éxito", f"Filtrado completado.\nBG guardado en: {file_bg}\nSignal guardado en: {file_sg}")
+            messagebox.showinfo("Success", f"Filtering completed.\nSignal saved at: {file_sg}")
 
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un problema al filtrar los eventos: {e}")
+            messagebox.showerror("Error", f"An error occurred while filtering the events: {e}")
 
         finally:
             filtrar_btn.config(state=tk.NORMAL)  # Reactivar el botón al finalizar
@@ -1066,31 +1064,39 @@ def on_iniciar_calculo():
     global Final_name, columns_to_check, df_combined
 
     # Preguntar al usuario si desea cargar un archivo de cálculo ya generado
-    choice = messagebox.askyesno("Cargar archivo", "¿Deseas cargar un archivo de cálculo en lugar de generarlo?")
+    choice = messagebox.askyesno("Load file", "Do you want to load a calculation file instead of generating it?")
     
     if choice:  # Si elige "Sí", permite cargar el archivo
-        Final_name = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Cargar archivo de cálculo")
+        Final_name = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Load calculation file")
         
         if Final_name:
             try:
                 df_combined = pd.read_csv(Final_name)
-                columns_to_check = df_combined.columns.tolist()
+                
+                # Filtrar solo columnas con datos numéricos
+                columns_to_check = df_combined.select_dtypes(include='number').columns.tolist()
+
+                if not columns_to_check:
+                    messagebox.showerror("Error", "The file does not contain numeric columns.")
+                    return
+
                 columna_menu["values"] = columns_to_check 
-                messagebox.showinfo("Éxito", "Archivo de cálculo cargado correctamente.")
-                return  # Salir de la función si ya se cargó el archivo
+                columna_var.set(columns_to_check[0])  # Opcional: seleccionar la primera por defecto
+                messagebox.showinfo("Success", "Calculation file loaded successfully.")
+                return
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo cargar el archivo: {e}")
+                messagebox.showerror("Error", f"Failed to load the file: {e}")
         else:
-            messagebox.showwarning("Advertencia", "No se seleccionó un archivo. Se canceló la carga.")
-        return  
+            messagebox.showwarning("Warning", "No file was selected. The load was canceled.")
+        return
 
     # Si no se carga un archivo, proceder con el cálculo normal
     if filtered_dfsg is None or filtered_dfbg is None:
-        messagebox.showerror("Error", "Debe filtrar los eventos antes de iniciar el cálculo.")
+        messagebox.showerror("Error", "You must filter the events before starting the calculation.")
         return
 
     calcular_btn.config(state=tk.DISABLED)  # Deshabilitar el botón mientras se ejecuta el cálculo
-    messagebox.showinfo("Información", "Iniciando el proceso de cálculo...")
+    messagebox.showinfo("Information", "Starting the calculation process...")
 
     # Ejecutar el cálculo en un hilo separado
     hilo_calculo = threading.Thread(target=ejecutar_calculo, daemon=True)  # Agregar daemon=True
@@ -1108,16 +1114,14 @@ def ejecutar_calculo():
         csv_bg['Td'] = "b"
 
         # Pedir nombre para guardar el Signal
-        name_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo de Signal")
+        name_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save SIGNAL file")
         if name_sg:
             csv_sig.to_csv(name_sg, index=False)
-            print(f"Se guardó el análisis para el Signal en: {name_sg}")
 
         # Pedir nombre para guardar el BG
-        name_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo de Background")
+        name_bg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save BACKGROUND file")
         if name_bg:
             csv_bg.to_csv(name_bg, index=False)
-            print(f"Se guardó el análisis para el BG en: {name_bg}")
 
         # Combinar ambos DataFrames
         df_combined = pd.concat([csv_bg, csv_sig], ignore_index=False)
@@ -1125,128 +1129,313 @@ def ejecutar_calculo():
         df_combined.index += 1
 
         # Guardar los nombres de las columnas en columns_to_check
-        columns_to_check = df_combined.columns.tolist()
+        columns_to_check = df_combined.select_dtypes(include='number').columns.tolist()
 
         # Refrescar el combobox con las nuevas columnas
         columna_menu["values"] = columns_to_check 
+        columna_var.set(columns_to_check[0])  # Opcional: seleccionar la primera por defecto
 
         # Pedir nombre para guardar el archivo combinado
-        Final_name = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Guardar archivo combinado")
+        Final_name = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save combined file")
         if Final_name:
-            df_combined = df_combined.rename_axis('Evento').reset_index()
+            df_combined = df_combined.rename_axis('Event').reset_index()
             df_combined.to_csv(Final_name, index=False)
-            print(f'El archivo combinado fue creado con el nombre: {Final_name}')
-            messagebox.showinfo("Éxito", f"Archivo combinado guardado como:\n{Final_name}")
+            messagebox.showinfo("Success", f"Combined file saved as:\n{Final_name}")
         else:
-            print("No se guardó el archivo combinado.")
+            messagebox.showinfo("The combined file was not saved.")
 
     except Exception as e:
-        messagebox.showerror("Error", f"Ocurrió un problema en el cálculo: {e}")
+        messagebox.showerror("Error", f"An error occurred during the calculation: {e}")
 
     finally:
         calcular_btn.config(state=tk.NORMAL)  # Reactivar el botón al finalizar
-#FUNCION PARA GENERAR LAS GRAFICAS
+
+import plotly.graph_objects as go
+from scipy.stats import gaussian_kde, norm, expon
+
+def generar_grafica_v2():
+    columna = columna_var.get().strip()
+    if not columna or df_combined is None or columna not in df_combined.columns:
+        messagebox.showerror("Error", "Check the selected column or file.")
+        return
+
+    datos = df_combined[columna].dropna()
+    if datos.empty or len(datos) < 2:
+        messagebox.showerror("Error", "Not enough data.")
+        return
+
+    # Entradas del usuario
+    titulo = titulo_var.get().strip() or f"Distribution of {columna}"
+    rango_x = rango_x_var.get().strip()
+    leyenda = legend_var.get().strip() or "Type"
+    bins_usuario = bins_var.get().strip()
+    usar_log = log_var.get() if 'log_var' in globals() else False
+    ajuste = ajuste_var.get() if 'ajuste_var' in globals() else "None"
+    # Nuevas etiquetas de ejes
+    etiqueta_x = xlabel_var.get().strip() or columna
+    etiqueta_y = ylabel_var.get().strip() or "Events ( scaled to one )"
+
+    try:
+        x_range = tuple(map(float, rango_x.split(","))) if rango_x else None
+    except:
+        x_range = None
+
+    try:
+        bins = int(bins_usuario) if bins_usuario else 50
+    except:
+        bins = 50
+
+    df_signal = df_combined[df_combined["Td"] == "s"]
+    df_background = df_combined[df_combined["Td"] == "b"]
+
+    fig = go.Figure()
+
+    # Generar histograma normalizado (área = 1)
+    def histo_con_area(df, name, color):
+        hist, bin_edges = np.histogram(df[columna].dropna(), bins=bins, range=x_range, density=True)
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        fig.add_trace(go.Bar(
+            x=bin_centers,
+            y=hist,
+            name=name,
+            marker_color=color,
+            opacity=0.6,
+            width=(bin_edges[1] - bin_edges[0]),
+            hovertemplate=f"{name}<br>{columna}: %{{x}}<br>Events ( scaled to one ): %{{y:.3f}}<extra></extra>"
+        ))
+        return df[columna].dropna().values, bin_edges
+
+    datos_b, bin_edges_b = histo_con_area(df_background, "Background", "rgba(0, 123, 255, 0.6)")
+    datos_s, bin_edges_s = histo_con_area(df_signal, "Signal", "rgba(220, 53, 69, 0.6)")
+
+    # Curvas de ajuste con misma área que el histograma
+    def ajustar_y_graficar(datos, label, color):
+        if len(datos) < 2:
+            return
+
+        x_vals = np.linspace(min(datos), max(datos), 500)
+
+        if ajuste == "KDE":
+            kde = gaussian_kde(datos)
+            y_vals = kde(x_vals)
+
+        elif ajuste == "Gaussiano":
+            mu, sigma = norm.fit(datos)
+            y_vals = norm.pdf(x_vals, mu, sigma)
+
+        elif ajuste == "Exponencial":
+            loc, scale = expon.fit(datos)
+            y_vals = expon.pdf(x_vals, loc=loc, scale=scale)
+
+        else:
+            return
+
+        # Normalizar la curva para que su integral = 1 (igual que histograma con density=True)
+        area = np.trapz(y_vals, x_vals)
+        y_vals /= area
+
+        fig.add_trace(go.Scatter(
+            x=x_vals, y=y_vals,
+            mode="lines",
+            name=f"{ajuste} {label}",
+            line=dict(color=color.replace("0.6", "1.0"), dash="dash"),
+            hovertemplate=f"{ajuste} {label}<br>{columna}: %{{x}}<br>Events ( scaled to one ): %{{y:.3f}}<extra></extra>"
+        ))
+
+    if ajuste != "None":
+        ajustar_y_graficar(datos_b, "Background", "rgba(0, 123, 255, 0.6)")
+        ajustar_y_graficar(datos_s, "Signal", "rgba(220, 53, 69, 0.6)")
+
+    # Layout
+    fig.update_layout(
+        title={"text": f"$\\text{{{titulo}}}$", "x": 0.5},
+        xaxis_title=f"$\\text{{{etiqueta_x}}}$",
+        yaxis_title=f"$\\text{{{etiqueta_y}}}$",
+        template="plotly_white",
+        legend_title=leyenda,
+        legend=dict(font=dict(size=12)),
+    )
+
+    if x_range:
+        fig.update_xaxes(range=x_range)
+
+    if usar_log:
+        fig.update_yaxes(type="log")
+
+    fig.show()
+
 def generar_grafica():
     columna_seleccionada = columna_var.get().strip()
-    
+
     if not columna_seleccionada:
-        messagebox.showerror("Error", "Seleccione una columna.")
-        return
-    
-    if df_combined is None or columna_seleccionada not in df_combined.columns:
-        messagebox.showerror("Error", "No se encontró el archivo combinado o la columna no existe.")
+        messagebox.showerror("Error", "Select a column.")
         return
 
-    # Filtrar valores nulos y verificar que la columna tenga más de un dato
+    if df_combined is None or columna_seleccionada not in df_combined.columns:
+        messagebox.showerror("Error", "The combined file was not found or the column does not exist.")
+        return
+
     datos_validos = df_combined[columna_seleccionada].dropna()
     if datos_validos.empty or len(datos_validos) < 2:
-        messagebox.showerror("Error", "No hay suficientes datos para generar el histograma.")
+        messagebox.showerror("Error", "There is not enough data to generate the histogram.")
         return
 
-    # Verificar si la columna es numérica
-    if not pd.api.types.is_numeric_dtype(datos_validos):
-        messagebox.showerror("Error", "La columna seleccionada no es numérica.")
-        return
-
-    # Obtener valores ingresados por el usuario (si existen)
-    titulo_usuario = titulo_var.get().strip()
+    # Valores del usuario
+    titulo = titulo_var.get().strip() or f"Distribution of {columna_seleccionada}"
+    legend_name = legend_var.get().strip() or "Event Type"
     rango_x_usuario = rango_x_var.get().strip()
-    legend_usuario = legend_var.get().strip()  # Nombre de la leyenda
+    bins_usuario = bins_var.get().strip()  # Nuevo campo: número de bins
 
-    # Determinar el título
-    titulo = titulo_usuario if titulo_usuario else f"Distribución de {columna_seleccionada}"
-    
-    # Determinar el rango del eje X (si el usuario lo ingresó correctamente)
+    # Rango en X
     try:
         if rango_x_usuario:
-            x_min, x_max = map(float, rango_x_usuario.split(","))  # Convertir a dos números
+            x_min, x_max = map(float, rango_x_usuario.split(","))
             rango_x = (x_min, x_max)
         else:
-            rango_x = None  # Mantener el valor predeterminado
+            rango_x = None
     except ValueError:
-        messagebox.showwarning("Advertencia", "Formato incorrecto para el rango en X. Use: min,max")
-        rango_x = None  # Ignorar el rango si el formato no es válido
+        messagebox.showwarning("Warning", "Incorrect format for the X range. Use: min,max")
+        rango_x = None
 
-    # Determinar el nombre de la leyenda
-    nombre_legend = legend_usuario if legend_usuario else "Td"
+    # Bins
+    try:
+        bins = int(bins_usuario) if bins_usuario else 50
+    except ValueError:
+        messagebox.showwarning("Warning", "Bins must be a number. Using default = 50.")
+        bins = 50
 
-    # Crear histograma
+    # Estilo más profesional
+    sns.set(style="whitegrid", palette="muted", font_scale=1.1)
+
     plt.figure(figsize=(10, 6))
-    ax = sns.histplot(df_combined, x=columna_seleccionada, hue="Td", kde=True, bins=50, element="step", common_norm=False)
+
+    ax = sns.histplot(
+        data=df_combined,
+        x=columna_seleccionada,
+        hue="Td",
+        kde=True,
+        bins=bins,
+        element="step",
+        common_norm=False,
+        stat="density"  # Normalizado
+    )
 
     plt.xlabel(columna_seleccionada)
-    plt.ylabel("Número de Eventos")
+    plt.ylabel("Events ( scaled to one )")
     plt.title(titulo)
 
-    # Aplicar el rango en X si fue definido correctamente
     if rango_x:
         plt.xlim(rango_x)
 
-    plt.grid()
+    plt.grid(visible=True, linestyle="--", linewidth=0.5)
 
-    # Modificar el nombre de la leyenda
+    # Leyenda detallada
     handles, labels = ax.get_legend_handles_labels()
-    plt.legend(handles, labels, title=nombre_legend)  # Usa el nombre personalizado
+    new_labels = []
+    for label in labels:
+        if label == "s":
+            new_labels.append("Signal")
+        elif label == "b":
+            new_labels.append("Background")
+        else:
+            new_labels.append(label)
+    plt.legend(handles, new_labels, title=legend_name, loc='upper right')
 
+    plt.tight_layout()
     plt.show()
 
-####
-
-tk.Label(tab3, text="Sube o crea los archivos para el filtrado y cálculo de eventos").pack()
-
-columna_var = tk.StringVar()
+# Entradas para personalización
 titulo_var = tk.StringVar()
-rango_x_var = tk.StringVar()
+xlabel_var = tk.StringVar()
+ylabel_var = tk.StringVar()
 legend_var = tk.StringVar()
+rango_x_var = tk.StringVar()
+bins_var = tk.StringVar()
+log_var = tk.BooleanVar()
+ajuste_var = tk.StringVar()
 
-#Botones y entradas pestaña 3
-filtrar_btn = tk.Button(tab3, text="Filtrar Eventos", command=on_filtrar_eventos)
-filtrar_btn.pack(pady=10)
+# --- Encabezado principal ---
+ttk.Label(tab3, text="Upload or create the SIGNAL files for event filtering and calculation").pack(pady=10)
 
-calcular_btn = tk.Button(tab3, text="Iniciar Cálculo", command=on_iniciar_calculo)
-calcular_btn.pack(pady=10)
+# --- Frame: Botones principales y barras de progreso ---
+frame_main_actions = ttk.LabelFrame(tab3, text="Event Processing", padding=10)
+frame_main_actions.pack(pady=10, fill=tk.X)
 
-# Selección de columna
-tk.Label(tab3, text="Seleccione la columna que desea visualizar como histograma una vez\n" 
-         " terminado el cálculo de las observables para visualizar las opciones:").pack()
+filtrar_btn = ttk.Button(frame_main_actions, text="Filter Events", command=on_filtrar_eventos)
+filtrar_btn.pack(pady=5)
+
+progress_var_f = tk.DoubleVar()
+progress_bar_f = ttk.Progressbar(frame_main_actions, variable=progress_var_f, maximum=100, length=400)
+progress_bar_f.pack(pady=5)
+progress_bar_f["value"] = 0
+progress_bar_f.update()
+
+calcular_btn = ttk.Button(frame_main_actions, text="Start Calculation", command=on_iniciar_calculo)
+calcular_btn.pack(pady=5)
+
+progress_var_c = tk.DoubleVar()
+progress_bar_c = ttk.Progressbar(frame_main_actions, variable=progress_var_c, maximum=100, length=400)
+progress_bar_c.pack(pady=5)
+progress_bar_c["value"] = 0
+progress_bar_c.update()
+
+# --- Frame: Selección de columna ---
+frame_columna = ttk.LabelFrame(tab3, text="Select Histogram Column", padding=10)
+frame_columna.pack(pady=10, fill=tk.X)
+
+ttk.Label(frame_columna, text="Select the column you want to display as a histogram once\n"
+                              "the observables have been calculated:").pack(pady=5)
 columna_var = tk.StringVar()
-columna_menu = ttk.Combobox(tab3, textvariable=columna_var, values=list(columns_to_check), width=80)
-columna_menu.pack(pady=10)
+columna_menu = ttk.Combobox(frame_columna, textvariable=columna_var, values=list(columns_to_check), width=80)
+columna_menu.pack(pady=5)
 
-# Crear etiquetas y entradas en la ventana
+# --- Frame: Personalización del gráfico ---
+frame_grafico = ttk.LabelFrame(tab3, text="Plot Customization", padding=10)
+frame_grafico.pack(pady=10, fill=tk.X)
 
-tk.Label(tab3, text="Título del Gráfico (Opcional):").pack(pady=4)
-tk.Entry(tab3, textvariable=titulo_var).pack(pady=4)
+# Subframe: Título y leyenda
+frame_titulos = ttk.Frame(frame_grafico)
+frame_titulos.pack(pady=5, fill=tk.X)
 
-tk.Label(tab3, text="Rango en X (Opcional, formato min,max):").pack(pady=4)
-tk.Entry(tab3, textvariable=rango_x_var).pack(pady=4)
+ttk.Label(frame_titulos, text="Custom title:").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_titulos, textvariable=titulo_var, width=30).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_titulos, text="Legend title:").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_titulos, textvariable=legend_var, width=30).pack(side=tk.LEFT, padx=5)
 
-tk.Label(tab3, text="Nombre de la Leyenda (Opcional):").pack(pady=4)
-tk.Entry(tab3, textvariable=legend_var).pack(pady=4)
+# Subframe: Ejes
+frame_ejes = ttk.Frame(frame_grafico)
+frame_ejes.pack(pady=5, fill=tk.X)
 
-# Botón para generar gráfica
-btn_generar = tk.Button(tab3, text="Generar Histograma", command=generar_grafica)
-btn_generar.pack(pady=10)
+ttk.Label(frame_ejes, text="X-axis label:").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_ejes, textvariable=xlabel_var, width=30).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_ejes, text="Y-axis label:").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_ejes, textvariable=ylabel_var, width=30).pack(side=tk.LEFT, padx=5)
+
+# Subframe: Rango y Bins
+frame_rango_bins = ttk.Frame(frame_grafico)
+frame_rango_bins.pack(pady=5, fill=tk.X)
+
+ttk.Label(frame_rango_bins, text="X Range (min,max):").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_rango_bins, textvariable=rango_x_var, width=25).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_rango_bins, text="Number of bins:").pack(side=tk.LEFT, padx=5)
+ttk.Entry(frame_rango_bins, textvariable=bins_var, width=30).pack(side=tk.LEFT, padx=5)
+
+# Subframe: Ajuste y escala
+frame_ajuste = ttk.Frame(frame_grafico)
+frame_ajuste.pack(pady=5, fill=tk.X)
+
+ttk.Checkbutton(frame_ajuste, text="Logarithmic Scale", variable=log_var).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_ajuste, text="Fit type:").pack(side=tk.LEFT, padx=5)
+ttk.Combobox(
+    frame_ajuste,
+    textvariable=ajuste_var,
+    values=["None", "KDE", "Gaussian", "Exponential"],
+    state="readonly",
+    width=15
+).pack(side=tk.LEFT, padx=5)
+
+# --- Botón final para generar gráfica ---
+ttk.Button(tab3, text="Generate Plot", command=generar_grafica_v2).pack(pady=10)
 
 #### Pestaña 4 ####
 
@@ -1258,10 +1447,10 @@ def roc(test_x, test_y, train_x, train_y, model):
     try:
         # Verificar si las entradas no están vacías
         if test_x is None or test_y is None or train_x is None or train_y is None:
-            raise ValueError("Los conjuntos de prueba o entrenamiento no deben ser nulos.")
+            raise ValueError("Test or training sets must not be null.")
 
         if model is None:
-            raise ValueError("El modelo no está definido o no está entrenado.")
+            raise ValueError("Model is not defined or not trained.")
         
         # Crear la figura para la curva ROC
         plt.figure(figsize=(10, 7))
@@ -1270,7 +1459,7 @@ def roc(test_x, test_y, train_x, train_y, model):
         # Predicción en el conjunto de prueba
         model_predict = model.predict_proba(test_x)  # Obtener probabilidades
         if model_predict.shape[1] < 2:
-            raise ValueError("El modelo debe generar probabilidades para ambas clases.")
+            raise ValueError("Model must output probabilities for both classes.")
         model_predict = model_predict[:, 1]
         auc_score = roc_auc_score(test_y, model_predict)  # Calcular AUC
         fpr, tpr, _ = roc_curve(test_y, model_predict)  # Calcular la curva ROC
@@ -1282,7 +1471,6 @@ def roc(test_x, test_y, train_x, train_y, model):
         auc_score = roc_auc_score(train_y, model_predict)
         fpr, tpr, _ = roc_curve(train_y, model_predict)
         plt.plot(tpr, 1 - fpr, label=f'Train   {round(auc_score, 4)}', color='midnightblue', linewidth=2)
-        print('Train : ', auc_score)
 
         # Estética del gráfico
         plt.legend(loc='best', fontsize=15)
@@ -1296,13 +1484,13 @@ def roc(test_x, test_y, train_x, train_y, model):
 
     except ValueError as ve:
         # Manejo de errores de validación
-        messagebox.showerror("Error de Validación", str(ve))
+        messagebox.showerror("Validation Error", str(ve))
     except FileNotFoundError:
         # Manejo de errores al guardar el archivo
-        messagebox.showerror("Error", "No se pudo guardar la gráfica. Verifica el nombre o la ubicación.")
+        messagebox.showerror("Error", "Could not save the plot. Check the filename or location.")
     except Exception as e:
         # Manejo de errores generales
-        messagebox.showerror("Error", f"Ocurrió un error inesperado: {e}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
 def plot_classifier_distributions(model, test, train, cols, print_params=False, params=None):
     global _ks_back
@@ -1408,15 +1596,15 @@ def update_info():
     # Verificar si 'df_shuffled' existe y no es None ni está vacío
     if df_shuffled is not None and not df_shuffled.empty:
         # Preguntar al usuario si quiere usar los datos existentes
-        use_existing = messagebox.askyesno("Datos Existentes", "Ya existen datos cargados. ¿Deseas usar estos datos?")
+        use_existing = messagebox.askyesno("Existing Data", "Data has already been loaded. Do you want to use the existing data?")
 
         if use_existing:
             # Crear el texto que se mostrará directamente
-            info_content = (f"Tamaño de los datos: {df_shuffled.shape}\n"
-                            f"Número de eventos: {df_shuffled.shape[0]}\n"
-                            f"Número de eventos de Signal: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
-                            f"Número de eventos de Background: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
-                            f"Fracción de señal: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
+            info_content = (f"Data size: {df_shuffled.shape}\n"
+                            f"Number of events: {df_shuffled.shape[0]}\n"
+                            f"Number of Signal events: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
+                            f"Number of Background events: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
+                            f"Signal fraction: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
             
             # Borrar contenido previo del cuadro de texto
             text_widget.delete('1.0', 'end')  # Borra desde la línea 1 hasta el final
@@ -1433,14 +1621,14 @@ def update_info():
         df_shuffled.loc[-1] = column_titles
         df_shuffled.index = df_shuffled.index + 1
         df_shuffled = df_shuffled.sort_index()
-        messagebox.showinfo("Carga de Datos", "Datos cargados exitosamente")
+        messagebox.showinfo("Data Load", "Data loaded successfully.")
 
         # Crear el texto que se mostrará
-        info_content = (f"Tamaño de los datos: {df_shuffled.shape}\n"
-                        f"Número de eventos: {df_shuffled.shape[0]}\n"
-                        f"Número de eventos de Signal: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
-                        f"Número de eventos de Background: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
-                        f"Fracción de señal: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
+        info_content = (f"Data size: {df_shuffled.shape}\n"
+                        f"Number of events: {df_shuffled.shape[0]}\n"
+                        f"Number of Signal events: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
+                        f"Number of Background events: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
+                        f"Signal fraction: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
         
         # Borrar contenido previo del cuadro de texto
         text_widget.delete('1.0', 'end')  # Borra desde la línea 1 hasta el final
@@ -1460,11 +1648,11 @@ def apply_filter():
 
         # Validar que el factor no sea mayor que los eventos disponibles
         if factor > signal_count:
-            messagebox.showerror("Error", f"El factor ingresado ({factor}) es mayor al número de eventos de Signal disponibles ({signal_count}).")
+            messagebox.showerror("Error", f"The entered factor ({factor}) is greater than the number of available Signal events ({signal_count}).")
             return  # Detener ejecución de la función
 
         if factor > background_count:
-            messagebox.showerror("Error", f"El factor ingresado ({factor}) es mayor al número de eventos de Background disponibles ({background_count}).")
+            messagebox.showerror("Error", f"The entered factor ({factor}) is greater than the number of available Background events ({background_count}).")
             return  # Detener ejecución de la función
 
         # Filtrar los eventos con base en el factor
@@ -1473,22 +1661,22 @@ def apply_filter():
         df_shuffled = pd.concat([s_events, b_events], ignore_index=True)
 
         # Actualizar la interfaz y mostrar éxito
-        info_content = (f"Tamaño de los datos: {df_shuffled.shape}\n"
-                        f"Número de eventos: {df_shuffled.shape[0]}\n"
-                        f"Número de eventos de Signal: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
-                        f"Número de eventos de Background: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
-                        f"Fracción de señal: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
+        info_content = (f"Data size: {df_shuffled.shape}\n"
+                        f"Number of events: {df_shuffled.shape[0]}\n"
+                        f"Number of Signal events: {len(df_shuffled[df_shuffled.Td == 's'])}\n"
+                        f"Number of Background events: {len(df_shuffled[df_shuffled.Td == 'b'])}\n"
+                        f"Signal fraction: {(len(df_shuffled[df_shuffled.Td == 's'])/(float(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b'])))*100):.2f}%")
         
         # Borrar contenido previo del cuadro de texto
         text_widget.delete('1.0', 'end')  # Borra desde la línea 1 hasta el final
         # Insertar el nuevo texto
         text_widget.insert('1.0', info_content)
 
-        messagebox.showinfo("Éxito", "¡Datos filtrados correctamente!")
+        messagebox.showinfo("Success", "Data filtered successfully!")
 
     except ValueError:
         # Mostrar error si el valor no es válido
-        messagebox.showerror("Error", "Por favor, ingrese un número entero válido para el factor.")
+        messagebox.showerror("Error", "Please enter a valid integer for the factor.")
 
 def process_data():
     global vars_for_train, df_4train, signal_features, signal_lab, bkgnd_features, bkgnd_labels, features_, label_
@@ -1496,7 +1684,7 @@ def process_data():
     try:
         # Verificar si 'df_shuffled' está cargado
         if df_shuffled is None or df_shuffled.empty:
-            messagebox.showerror("Error", "No hay datos cargados para procesar.")
+            messagebox.showerror("Error", "No data loaded to process.")
             return
 
         # Separar signal y background
@@ -1554,11 +1742,11 @@ def process_data():
         bkgnd_labels = bkg4train['signal/bkgnd']  # bkgnd_y
 
         # Mensaje al usuario
-        processed_info = (f"Datos procesados correctamente.\n"
-                          f"Total de características usadas:\n {signal_features.shape[1]}\n"
-                          f"Total de eventos para entrenamiento:\n {signal_features.shape[0] + bkgnd_features.shape[0]}\n"
-                          f"Variables eliminadas por alta correlación:\n {to_drop}")
-        messagebox.showinfo("Exito","Preprocesamiento Completado")
+        processed_info = (f"Data processed successfully.\n"
+                          f"Total features used:\n {signal_features.shape[1]}\n"
+                          f"Total events for training:\n {signal_features.shape[0] + bkgnd_features.shape[0]}\n"
+                          f"Variables dropped due to high correlation:\n {to_drop}")
+        messagebox.showinfo("Success", "Preprocessing completed")
 
         # Actualizar contenido en el cuadro de texto (si existe)
         text_widget_2.delete('1.0', 'end')  # Borrar contenido previo
@@ -1569,172 +1757,7 @@ def process_data():
 
     except Exception as e:
         # Manejo de errores
-        messagebox.showerror("Error en el procesamiento", f"Ocurrió un error: {e}")
-
-def train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_labels, size):
-    global eval_set, test, train, cols, vars_for_train, modelv1
-    global train_feat, train_lab, test_feat, test_lab
-
-    try:
-        # Dividir los datos en conjuntos de entrenamiento y prueba
-        train_sig_feat, test_sig_feat, train_sig_lab, test_sig_lab = train_test_split(
-            signal_features, signal_lab, test_size=size, random_state=1)
-        train_bkg_feat, test_bkg_feat, train_bkg_lab, test_bkg_lab = train_test_split(
-            bkgnd_features, bkgnd_labels, test_size=size, random_state=1)
-
-        # Combinar los datos de prueba y entrenamiento
-        test_feat = pd.concat([test_sig_feat, test_bkg_feat])  # test_x
-        test_lab = pd.concat([test_sig_lab, test_bkg_lab])    # test_y
-        train_feat = pd.concat([train_sig_feat, train_bkg_feat])  # train_x
-        train_lab = pd.concat([train_sig_lab, train_bkg_lab])    # train_y
-
-        # Crear conjuntos para evaluación
-        eval_set = [(train_feat, train_lab), (test_feat, test_lab)]
-        test = test_feat.assign(label=test_lab)
-        train = train_feat.assign(label=train_lab)
-        cols = vars_for_train
-
-        # Variables auxiliares para hiperparámetros
-        _ks_back = 0
-        _ks_sign = 0
-
-        while _ks_back < 0.05 or _ks_sign < 0.05:
-            # Parámetros manuales iniciales
-            manual_params = {
-                'colsample_bylevel': 0.8129556523950925,
-                'colsample_bynode': 0.6312324405171867,
-                'colsample_bytree': 0.6479261529614907,
-                'gamma': 6.0528983610080305,
-                'learning_rate': 0.1438821307939924,
-                'max_leaves': 15,               
-                'max_depth': 5,
-                'min_child_weight': 1.385895334160164,
-                'reg_alpha': 6.454459356576733,
-                'reg_lambda': 22.88928659795952,
-                'n_estimators': 100
-            }
-
-            # Función de optimización usando Optuna
-            def objective(trial):
-                params = {
-                    'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),
-                    'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
-                    'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
-                    'gamma': trial.suggest_float('gamma', 5.5, 7),
-                    'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2),
-                    'max_leaves': trial.suggest_int('max_leaves', 10, 20),
-                    'max_depth': trial.suggest_int('max_depth', 4, 6),
-                    'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0),
-                    'reg_alpha': trial.suggest_float('reg_alpha', 6, 7),
-                    'reg_lambda': trial.suggest_float('reg_lambda', 22, 23),
-                    'n_estimators': trial.suggest_int('n_estimators', 90, 120)
-                }
-                model = xgb.XGBClassifier(
-                    objective='binary:logistic',
-                    tree_method='hist',
-                    **params
-                )
-                model.fit(train_feat[cols], train_lab)
-                preds = model.predict_proba(test_feat[cols])[:, 1]
-                return roc_auc_score(test_lab, preds)
-
-            # Optimización de hiperparámetros con Optuna
-            study = optuna.create_study(direction='maximize')
-            study.enqueue_trial(manual_params)
-            study.optimize(objective, n_trials=50)
-
-            # Resultados de los mejores hiperparámetros
-            text_widget_3.delete('1.0', 'end')  # Borrar contenido previo
-            text_widget_3.insert('1.0', f"Mejores hiperparámetros:\n{study.best_trial.params}\n\nMejor puntaje: {study.best_trial.value}")
-
-            best_hyperparams = study.best_trial.params
-
-            # Llenar valores nulos con la media del conjunto de entrenamiento
-            train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
-            test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
-
-            # Crear conjunto de evaluación consistente
-            eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
-
-            # Crear modelo con los mejores hiperparámetros
-            modelv1 = xgb.XGBClassifier(
-                objective='binary:logistic',
-                tree_method='hist',
-                n_jobs=5,
-                max_leaves=best_hyperparams['max_leaves'],
-                max_depth=best_hyperparams['max_depth'],
-                learning_rate=best_hyperparams['learning_rate'],
-                reg_alpha=best_hyperparams['reg_alpha'],
-                reg_lambda=best_hyperparams['reg_lambda'],
-                min_child_weight=best_hyperparams['min_child_weight'],
-                colsample_bylevel=best_hyperparams['colsample_bylevel'],
-                colsample_bynode=best_hyperparams['colsample_bynode'],
-                colsample_bytree=best_hyperparams['colsample_bytree'],
-                gamma=best_hyperparams['gamma'],
-                n_estimators=best_hyperparams['n_estimators'],
-                early_stopping_rounds=10
-            )
-
-            # Entrenar el modelo con los mejores hiperparámetros
-            modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=True)
-            return modelv1
-
-    except Exception as e:
-        # Manejo de errores
-        messagebox.showerror("Error", f"Ocurrió un error durante el entrenamiento: {e}")
-        return None
-
-def carga_modelo():
-    global modelv1
-
-    # Cargar el modelo
-    model_path = filedialog.askopenfilename(filetypes=[("Modelo XGBoost", "*.json")])
-    if model_path:
-        modelv1 = xgb.XGBClassifier()
-        modelv1.load_model(model_path)
-        messagebox.showinfo("Modelo Cargado", f"Modelo cargado exitosamente desde: {model_path}")
-
-def generate_model_and_visuals(train_feat, train_lab, test_feat, test_lab, modelv1, eval_set):
-    global Mymodel
-
-    try:
-        # Ajustar el modelo con el conjunto de evaluación y sin verbose
-        modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
-
-        # Generar y guardar distribución del clasificador
-        fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols=cols, print_params=False)
-        # Establecer título (opcional)
-        # ax.set_title(r'Total sample size $\approx$ '+str(len(train) + len(test))+' optimized')
-
-        # Mostrar métricas KS-pval si es relevante
-        messagebox.showinfo("Metricas", f'Background(Ks-pval): {_ks_back}\n'
-                            f'Signal(Ks-pval): {_ks_sign}')
-
-        # Guardar la gráfica
-        plt.show()
-
-        # Generar y mostrar ROC
-        roc(test_feat[cols], test_lab, train_feat[cols], train_lab, modelv1)
-
-        # Mostrar gráfico de importancia de características
-        messagebox.showinfo("Información","Se mostrará ahora una gráfica que organiza las variables por orden de importancia (F Score)")
-        xgb.plot_importance(modelv1)
-        plt.show()
-
-        # Guardar el modelo entrenado
-        model_path = filedialog.asksaveasfilename(defaultextension=".dat",
-                                                  filetypes=[("Modelo XGBoost", "*.dat"), ("Todos los archivos", "*.*")])
-        if model_path:
-            pickle.dump(modelv1, open(model_path, "wb"))
-            messagebox.showinfo("Modelo Guardado", f"Modelo guardado exitosamente en: {model_path}")
-
-        # Cargar modelo para predecir
-        Mymodel = pickle.load(open(model_path, "rb"))
-        return Mymodel
-
-    except Exception as e:
-        messagebox.showerror("Error", f"Ocurrió un error al generar el modelo o las gráficas: {e}")
-        return None
+        messagebox.showerror("Processing Error", f"An error occurred: {e}")
 
 def mycsvfile(pdf, myname):
     """
@@ -1759,87 +1782,409 @@ def mycsvfile(pdf, myname):
         ddf.to_csv(myname, single_file=True, index=False)  # Asegura que el archivo final esté en un solo CSV
 
         # Mensaje de éxito
-        messagebox.showinfo("Exportación Completa", f"Archivo creado como: {myname}")
+        messagebox.showinfo("Export Complete", f"File successfully created as: {myname}")
 
     except Exception as e:
         # Manejo de errores
-        messagebox.showerror("Error", f"Ocurrió un error al exportar el archivo CSV: {e}")
+        messagebox.showerror("Error", f"An error occurred while exporting the CSV file: {e}")
 
-def export_csv_gui():
-    global final_csv
-    # Se solicita al usuario que seleccione la ubicación y el nombre para guardar el CSV.
-    final_csv = filedialog.asksaveasfilename(
-        defaultextension=".csv",
-        filetypes=[("Archivos CSV", "*.csv"), ("Todos los archivos", "*.*")],
-        title="Guardar archivo CSV"
-    )
-    if not final_csv:
-        messagebox.showwarning("Cancelado", "No se seleccionó ningún archivo.")
-        return
+import webbrowser
+import pyperclip  # Asegúrate de tener instalado este paquete: pip install pyperclip
 
-    # Llama a la función para exportar el CSV con el DataFrame df_shuffled
-    mycsvfile(df_shuffled, final_csv)
+def wandb_login_gui():
+    try:
+        wandb.login(key=wandb_api_key.get(), relogin=True)
 
+        api = wandb.Api()
+        entity = api.default_entity
+        project_url = f"https://wandb.ai/{entity}/{nameproyect.get()}"
+
+        # Copiar al portapapeles
+        pyperclip.copy(project_url)
+
+        # Mostrar mensaje con opción de abrir el enlace
+        msg = (
+            "🚀 Login successful!\n\n"
+            "🌐 The project URL has been copied to your clipboard.\n\n"
+            "🔗 Do you want to open the project page in your browser?"
+        )
+        open_link = messagebox.askyesno("✅ Logged in to Weights & Biases", msg)
+
+        if open_link:
+            webbrowser.open(project_url)
+
+    except Exception as e:
+        messagebox.showerror('Error', f"❌ WandB login failed: {e}\n")
+
+import wandb
+from wandb.integration.xgboost import WandbCallback as WandbXGBCallback
+import xgboost as xgb
+
+def train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_labels, size):
+    global eval_set, test, train, cols, vars_for_train, modelv1
+    global train_feat, train_lab, test_feat, test_lab
+
+    try:
+        # 1. División de datos
+        train_sig_feat, test_sig_feat, train_sig_lab, test_sig_lab = train_test_split(
+            signal_features, signal_lab, test_size=size, random_state=1)
+        train_bkg_feat, test_bkg_feat, train_bkg_lab, test_bkg_lab = train_test_split(
+            bkgnd_features, bkgnd_labels, test_size=size, random_state=1)
+
+        test_feat = pd.concat([test_sig_feat, test_bkg_feat])
+        test_lab = pd.concat([test_sig_lab, test_bkg_lab])
+        train_feat = pd.concat([train_sig_feat, train_bkg_feat])
+        train_lab = pd.concat([train_sig_lab, train_bkg_lab])
+
+        eval_set = [(train_feat, train_lab), (test_feat, test_lab)]
+        test = test_feat.assign(label=test_lab)
+        train = train_feat.assign(label=train_lab)
+        cols = vars_for_train
+
+        _ks_back = 0
+        _ks_sign = 0
+
+        while _ks_back < 0.05 or _ks_sign < 0.05:
+            manual_params = {
+                'colsample_bylevel': 0.8129556523950925,
+                'colsample_bynode': 0.6312324405171867,
+                'colsample_bytree': 0.6479261529614907,
+                'gamma': 6.0528983610080305,
+                'learning_rate': 0.1438821307939924,
+                'max_leaves': 15,
+                'max_depth': 5,
+                'min_child_weight': 1.385895334160164,
+                'reg_alpha': 6.454459356576733,
+                'reg_lambda': 22.88928659795952,
+                'n_estimators': 100
+            }
+
+            def objective(trial):
+                params = {
+                    'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),
+                    'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
+                    'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
+                    'gamma': trial.suggest_float('gamma', 5.5, 7),
+                    'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2),
+                    'max_leaves': trial.suggest_int('max_leaves', 10, 20),
+                    'max_depth': trial.suggest_int('max_depth', 4, 6),
+                    'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0),
+                    'reg_alpha': trial.suggest_float('reg_alpha', 6, 7),
+                    'reg_lambda': trial.suggest_float('reg_lambda', 22, 23),
+                    'n_estimators': trial.suggest_int('n_estimators', 90, 120)
+                }
+                model = xgb.XGBClassifier(objective='binary:logistic', tree_method='hist', **params)
+                model.fit(train_feat[cols], train_lab)
+                preds = model.predict_proba(test_feat[cols])[:, 1]
+                return roc_auc_score(test_lab, preds)
+
+            study = optuna.create_study(direction='maximize')
+            study.enqueue_trial(manual_params)
+            study.optimize(objective, n_trials=50)
+
+            # Mostrar mejores hiperparámetros
+            text_widget_3.delete('1.0', 'end')
+            text_widget_3.insert('1.0', f"Best hyperparameters:\n{study.best_trial.params}\n\nBest score: {study.best_trial.value}")
+
+            best_hyperparams = study.best_trial.params
+
+            train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
+            test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
+
+            eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
+
+            modelv1 = xgb.XGBClassifier(
+                objective='binary:logistic',
+                tree_method='hist',
+                n_jobs=5,
+                max_leaves=best_hyperparams['max_leaves'],
+                max_depth=best_hyperparams['max_depth'],
+                learning_rate=best_hyperparams['learning_rate'],
+                reg_alpha=best_hyperparams['reg_alpha'],
+                reg_lambda=best_hyperparams['reg_lambda'],
+                min_child_weight=best_hyperparams['min_child_weight'],
+                colsample_bylevel=best_hyperparams['colsample_bylevel'],
+                colsample_bynode=best_hyperparams['colsample_bynode'],
+                colsample_bytree=best_hyperparams['colsample_bytree'],
+                gamma=best_hyperparams['gamma'],
+                n_estimators=best_hyperparams['n_estimators'],
+                early_stopping_rounds=10,
+                eval_metric=['logloss', 'auc']
+            )
+
+            # ✅ Logging con WandB sin callback
+            run = wandb.init(project=nameproyect.get(), name="XGB-run", reinit=True)
+
+            modelv1.fit(
+                train_feat[cols], train_lab,
+                eval_set=eval_set,
+                verbose=True
+            )
+
+            results = modelv1.evals_result()
+            for epoch in range(len(results["validation_0"]["logloss"])):
+                wandb.log({
+                    "epoch": epoch,
+                    "train-logloss": results["validation_0"]["logloss"][epoch],
+                    "test-logloss": results["validation_1"]["logloss"][epoch]
+                })
+
+            wandb.finish()
+
+            return modelv1
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred during training: {e}")
+        return None
+
+from sklearn.metrics import (
+    confusion_matrix, ConfusionMatrixDisplay,
+    precision_recall_curve, auc,
+    accuracy_score, roc_auc_score, f1_score
+)
+
+sns.set_style("whitegrid")
+
+def generate_model_and_visuals(train_feat, train_lab, test_feat, test_lab, modelv1, eval_set):
+    global Mymodel, fig, fig_imp, fig_cm, fig_pr, fig_hist, final_csv
+
+    try:
+        wandb.init(project=nameproyect.get(), reinit=True)
+
+        modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
+
+        # Distribución de scores
+        fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols=cols, print_params=False)
+        ax.set_title(r"$\text{Classifier Score Distribution}$", fontsize=16)
+        ax.set_xlabel(r"$\text{Model Score}$", fontsize=14)
+        ax.set_ylabel(r"$\text{Frequency}$", fontsize=14)
+        wandb.log({"distribution_plot": wandb.Image(fig)})
+        plt.tight_layout()
+
+        # Importancia de variables
+        fig_imp, ax_imp = plt.subplots(figsize=(10, 6))
+        xgb.plot_importance(modelv1, ax=ax_imp)
+        ax_imp.set_title(r"$\text{Feature Importance (F Score)}$", fontsize=16)
+        wandb.log({"feature_importance": wandb.Image(fig_imp)})
+        plt.tight_layout()
+
+        # Métricas
+        y_pred = modelv1.predict(test_feat[cols])
+        y_prob = modelv1.predict_proba(test_feat[cols])[:, 1]
+        acc = accuracy_score(test_lab, y_pred)
+        f1 = f1_score(test_lab, y_pred)
+        roc_score = roc_auc_score(test_lab, y_prob)
+        messagebox.showinfo(
+            "Model Evaluation Metrics",
+            f"✅ Model metrics on test data:\n\n"
+            f"• Accuracy: {acc:.4f}\n"
+            f"• F1 Score: {f1:.4f}\n"
+            f"• ROC AUC: {roc_score:.4f}"
+        )
+
+        # Matriz de confusión
+        cm = confusion_matrix(test_lab, modelv1.predict(test_feat[cols]))
+        fig_cm, ax_cm = plt.subplots()
+        ConfusionMatrixDisplay(cm).plot(ax=ax_cm)
+        ax_cm.set_title(r"$\text{Confusion Matrix}$", fontsize=16)
+        wandb.log({"confusion_matrix": wandb.Image(fig_cm)})
+        plt.tight_layout()
+
+        # Curva Precision-Recall
+        probs = modelv1.predict_proba(test_feat[cols])[:, 1]
+        precision, recall, _ = precision_recall_curve(test_lab, probs)
+        pr_auc = auc(recall, precision)
+        fig_pr, ax_pr = plt.subplots()
+        ax_pr.plot(recall, precision, label=fr"$\text{{AUC}} = {pr_auc:.2f}$", color="purple")
+        ax_pr.set_xlabel(r"$\text{Recall}$", fontsize=14)
+        ax_pr.set_ylabel(r"$\text{Precision}$", fontsize=14)
+        ax_pr.set_title(r"$\text{Precision-Recall Curve}$", fontsize=16)
+        ax_pr.legend()
+        wandb.log({"precision_recall_curve": wandb.Image(fig_pr)})
+        plt.tight_layout()
+
+        # Histograma de scores
+        fig_hist, ax_hist = plt.subplots()
+        sns.histplot(probs[test_lab == 0], kde=True, color="red", label="Background", stat="density", ax=ax_hist)
+        sns.histplot(probs[test_lab == 1], kde=True, color="blue", label="Signal", stat="density", ax=ax_hist)
+        ax_hist.set_title(r"$\text{Score Distribution}$", fontsize=16)
+        ax_hist.set_xlabel(r"$\text{Model Score}$", fontsize=14)
+        ax_hist.legend()
+        wandb.log({"score_distribution": wandb.Image(fig_hist)})
+        plt.tight_layout()
+
+        # Guardar modelo
+        model_artifact = wandb.Artifact(
+            'xgboost-model',
+            type='model',
+            metadata={"model_params": modelv1.get_params()}
+        )
+        model_path = filedialog.asksaveasfilename(defaultextension=".dat",
+                                                  filetypes=[("XGBoost Model", "*.dat"), ("All files", "*.*")])
+        if model_path:
+            with open(model_path, "wb") as f:
+                pickle.dump(modelv1, f)
+                model_artifact.add_file(model_path)
+                wandb.log_artifact(model_artifact)
+
+            messagebox.showinfo("Model Saved", f"Model successfully saved to:\n{model_path}")
+            Mymodel = pickle.load(open(model_path, "rb"))
+
+        wandb.finish()
+
+        # Guardar CSV
+        final_csv = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Save CSV file"
+        )
+        if not final_csv:
+            messagebox.showwarning("Cancelled", "No file was selected.")
+            return
+
+        # Llama a la función para exportar el CSV con el DataFrame df_shuffled
+        mycsvfile(df_shuffled, final_csv)
+
+        return Mymodel
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred while generating the model or visuals:\n\n{e}")
+        return None
+
+# Función para mostrar la figura seleccionada
+def show_selected_plot(plot_name):
+    figures = {
+        "Score Distribution": fig,
+        "Feature Importance": fig_imp,
+        "Confusion Matrix": fig_cm,
+        "Precision-Recall Curve": fig_pr,
+        "Score Histogram": fig_hist
+    }
+
+    fig_to_show = figures.get(plot_name)
+
+    if fig_to_show:
+        fig_to_show.tight_layout()
+        fig_to_show.show()
+    else:
+        messagebox.showerror("Error", "Selected plot is not available.")
+
+def carga_modelo():
+    global modelv1
+
+    # Cargar el modelo
+    model_path = filedialog.askopenfilename(filetypes=[("XGBoost Model", "*.json")])
+    if model_path:
+        modelv1 = xgb.XGBClassifier()
+        modelv1.load_model(model_path)
+        messagebox.showinfo("Model Loaded", f"Model successfully loaded from: {model_path}")
+
+# Variables
+nameproyect = tk.StringVar(value="my-xgb-project")
+wandb_api_key = tk.StringVar()
 factor_limite = tk.StringVar(value="100")
-size = 0.8
+size = tk.DoubleVar(value=0.8)
 
-tk.Label(tab4, text="Proporciona el archivo calculado para visulizar en el\n"
-                    "siguiente cuadro de texto información acerca de él:").pack(pady=5)
-tk.Button(tab4, text="Cargar Datos", command=update_info).pack()
+# ----------- Frame: Carga de datos ----------- #
+frame4_carga = ttk.LabelFrame(tab4, text="1. Load and Visualize Data", padding=10)
+frame4_carga.pack(fill="x", padx=10, pady=10)
 
-# Configuración inicial del cuadro de texto
-text_widget = tk.Text(tab4, height=5, width=40)
+row_carga = ttk.Frame(frame4_carga)
+row_carga.pack(pady=5)
+
+ttk.Label(row_carga, text="Provide the processed file to visualize information about it:").pack(side="left", padx=5)
+ttk.Button(row_carga, text="Load Data", command=update_info).pack(side="left", padx=5)
+text_widget = tk.Text(frame4_carga, height=5, width=60)
 text_widget.pack(pady=5)
 
-tk.Label(tab4, text="Elige el tamaño limite para los eventos signal/background:\n"
-"ya que se recomienda sea del 50/50 (Opcional)").pack(pady=5)
-tk.Entry(tab4, textvariable=factor_limite).pack(pady=5)
-tk.Button(tab4, text="Actualizar Datos", command=apply_filter).pack()
+# ----------- Frame: Filtrado y Preprocesamiento ----------- #
+frame4_filter = ttk.LabelFrame(tab4, text="2. Filter and Process Data", padding=10)
+frame4_filter.pack(fill="x", padx=10, pady=10)
 
-tk.Button(tab4, text="Procesar Datos", command=process_data).pack(pady=5)
+ttk.Label(frame4_filter, text="Choose signal/background event size (optional, recommended 50/50):").pack(pady=5)
 
-text_widget_2 = tk.Text(tab4, height=5, width=50)
+# Sub-frame horizontal para Entry + Botones en la misma línea
+row_filter = ttk.Frame(frame4_filter)
+row_filter.pack(pady=5)
+
+ttk.Entry(row_filter, textvariable=factor_limite, width=10).pack(side="left", padx=5)
+ttk.Button(row_filter, text="Update Data", command=apply_filter).pack(side="left", padx=5)
+ttk.Button(row_filter, text="Process Data", command=process_data).pack(side="left", padx=5)
+
+# Cuadro de texto para mostrar info de salida
+text_widget_2 = tk.Text(frame4_filter, height=5, width=60)
 text_widget_2.pack(pady=5)
 
-tk.Label(tab4, text="Coloque la poporción de datos que desea usar\n"
-                    "para el entrenamiento (se recomienda 0.8):").pack(pady=5)
-tk.Entry(tab4, textvariable=size).pack(pady=10)
+# ----------- Frame: Proporción de entrenamiento ----------- #
+frame4_split = ttk.LabelFrame(tab4, text="3. Train-Test Split", padding=10)
+frame4_split.pack(fill="x", padx=10, pady=10)
 
-# Etiqueta en la parte superior
-tk.Label(tab4, text="Entrena y Optimiza tu modelo o carga tu Modelo Entrenado:").pack(pady=5)
+row_split = ttk.Frame(frame4_split)
+row_split.pack(pady=5)
 
-# Crear un frame para los botones
-button_frame = tk.Frame(tab4)
-button_frame.pack(pady=5)  # Empaquetar el frame
+ttk.Label(row_split, text="Enter training set proportion (e.g., 0.8):").pack(side="left", padx=5)
+ttk.Entry(row_split, textvariable=size, width=10).pack(side="left", padx=5)
 
-# Botón de Entrenar y Optimizar
-tk.Button(button_frame, text="Entrenar y Optimizar Modelo", command=lambda: train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_labels, size)).pack(side="left", padx=5)
+# ----------- Frame: WandB Login ----------- #
+frame4_wandb = ttk.LabelFrame(tab4, text="4. Weights & Biases Login", padding=10)
+frame4_wandb.pack(fill="x", padx=10, pady=10)
 
-# Botón de Cargar Modelo
-#tk.Button(button_frame, text="Cargar Modelo", command=carga_modelo).pack(side="left", padx=5)
+row_wandbname = ttk.Frame(frame4_wandb)
+row_wandbname.pack(pady=5)
 
-text_widget_3 = tk.Text(tab4, height=5, width=40)
+ttk.Label(row_wandbname, text="WandB project name:").pack(side="left", padx=5)
+ttk.Entry(row_wandbname, textvariable=nameproyect, width=30).pack(side="left", padx=5)
+
+row_wandb = ttk.Frame(frame4_wandb)
+row_wandb.pack(pady=5)
+
+ttk.Label(row_wandb, text="Enter your WandB API key:").pack(side="left", padx=5)
+ttk.Entry(row_wandb, textvariable=wandb_api_key, width=30).pack(side="left", padx=5)
+ttk.Button(row_wandb, text="Login to WandB", command=wandb_login_gui).pack(side="left", padx=5)
+
+# ----------- Frame: Entrenamiento y optimización ----------- #
+frame4_train = ttk.LabelFrame(tab4, text="5. Train and Optimize Model", padding=10)
+frame4_train.pack(fill="x", padx=10, pady=10)
+
+row_trmodel = ttk.Frame(frame4_train)
+row_trmodel.pack(pady=5)
+
+ttk.Button(row_trmodel, text="Train and Optimize Model",
+          command=lambda: train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_labels, size.get())
+).pack(side="left", padx=5)
+
+ttk.Button(row_trmodel, text="Generate Model and Plots", command=lambda: generate_model_and_visuals(
+    train_feat, train_lab, test_feat, test_lab, modelv1, eval_set)).pack(side="left", padx=5)
+
+text_widget_3 = tk.Text(frame4_train, height=5, width=60)
 text_widget_3.pack(pady=5)
 
-tk.Label(tab4, text="Genera el modelo y exporta los resultados:").pack(pady=5)
+# ----------- Frame: Visualización de gráficas ----------- #
+frame4_graphs = ttk.LabelFrame(tab4, text="6. Visualize Generated Plots", padding=10)
+frame4_graphs.pack(fill="x", padx=10, pady=10)
 
-# Botón para generar el modelo y las visualizaciones
-tk.Button(tab4, text="Generar Modelo y Gráficas", command=lambda: generate_model_and_visuals(
-    train_feat, train_lab, test_feat, test_lab, modelv1, eval_set)).pack(pady=5)
+# Lista de nombres de gráficas disponibles
+available_plots = [
+    "Score Distribution",
+    "Feature Importance",
+    "Confusion Matrix",
+    "Precision-Recall Curve",
+    "Score Histogram"
+]
 
-# Botón para exportar CSV con las predicciones del modelo
+# Variable para selección
+selected_plot = tk.StringVar(value=available_plots[0])
 
-tk.Label(tab4, text="Añadir la columna de clasificacion XGB al Df:").pack(pady=5)
-tk.Button(tab4, text="Generar CSV", command=export_csv_gui).pack(pady=5)
+# Menú desplegable
+row_graph_select = ttk.Frame(frame4_graphs)
+row_graph_select.pack(pady=5)
+
+ttk.Label(row_graph_select, text="Select a plot to visualize:").pack(side="left", padx=5)
+ttk.OptionMenu(row_graph_select, selected_plot, *available_plots).pack(side="left", padx=5)
+ttk.Button(row_graph_select, text="Show Plot", command=lambda: show_selected_plot(selected_plot.get())).pack(side="left", padx=5)
 
 # Configuración de la pestaña 5
 ####
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
-import pandas as pd
-import numpy as np
-import math
-import matplotlib.pyplot as plt
 
 # Variables globales
 df_shuffled = None
