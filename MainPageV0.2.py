@@ -22,6 +22,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, average_precision_score
 from matplotlib.patches import Patch, Circle # Correcting the patch error
 from matplotlib.lines import Line2D
 from sklearn.model_selection import train_test_split
+from scipy.interpolate import griddata
 
 # Variables Globales
 filtered_dfbg = None
@@ -1946,27 +1947,12 @@ from sklearn.metrics import (
 sns.set_style("whitegrid")
 
 def generate_model_and_visuals(train_feat, train_lab, test_feat, test_lab, modelv1, eval_set):
-    global Mymodel, fig, fig_imp, fig_cm, fig_pr, fig_hist, final_csv
+    global Mymodel, final_csv
 
     try:
         wandb.init(project=nameproyect.get(), reinit=True)
 
         modelv1.fit(train_feat[cols], train_lab, eval_set=eval_set, verbose=False)
-
-        # Distribución de scores
-        fig, ax = plot_classifier_distributions(modelv1, test=test, train=train, cols=cols, print_params=False)
-        ax.set_title(r"$\text{Classifier Score Distribution}$", fontsize=16)
-        ax.set_xlabel(r"$\text{Model Score}$", fontsize=14)
-        ax.set_ylabel(r"$\text{Frequency}$", fontsize=14)
-        wandb.log({"distribution_plot": wandb.Image(fig)})
-        plt.tight_layout()
-
-        # Importancia de variables
-        fig_imp, ax_imp = plt.subplots(figsize=(10, 6))
-        xgb.plot_importance(modelv1, ax=ax_imp)
-        ax_imp.set_title(r"$\text{Feature Importance (F Score)}$", fontsize=16)
-        wandb.log({"feature_importance": wandb.Image(fig_imp)})
-        plt.tight_layout()
 
         # Métricas
         y_pred = modelv1.predict(test_feat[cols])
@@ -1981,37 +1967,6 @@ def generate_model_and_visuals(train_feat, train_lab, test_feat, test_lab, model
             f"• F1 Score: {f1:.4f}\n"
             f"• ROC AUC: {roc_score:.4f}"
         )
-
-        # Matriz de confusión
-        cm = confusion_matrix(test_lab, modelv1.predict(test_feat[cols]))
-        fig_cm, ax_cm = plt.subplots()
-        ConfusionMatrixDisplay(cm).plot(ax=ax_cm)
-        ax_cm.set_title(r"$\text{Confusion Matrix}$", fontsize=16)
-        wandb.log({"confusion_matrix": wandb.Image(fig_cm)})
-        plt.tight_layout()
-
-        # Curva Precision-Recall
-        probs = modelv1.predict_proba(test_feat[cols])[:, 1]
-        precision, recall, _ = precision_recall_curve(test_lab, probs)
-        pr_auc = auc(recall, precision)
-        fig_pr, ax_pr = plt.subplots()
-        ax_pr.plot(recall, precision, label=fr"$\text{{AUC}} = {pr_auc:.2f}$", color="purple")
-        ax_pr.set_xlabel(r"$\text{Recall}$", fontsize=14)
-        ax_pr.set_ylabel(r"$\text{Precision}$", fontsize=14)
-        ax_pr.set_title(r"$\text{Precision-Recall Curve}$", fontsize=16)
-        ax_pr.legend()
-        wandb.log({"precision_recall_curve": wandb.Image(fig_pr)})
-        plt.tight_layout()
-
-        # Histograma de scores
-        fig_hist, ax_hist = plt.subplots()
-        sns.histplot(probs[test_lab == 0], kde=True, color="red", label="Background", stat="density", ax=ax_hist)
-        sns.histplot(probs[test_lab == 1], kde=True, color="blue", label="Signal", stat="density", ax=ax_hist)
-        ax_hist.set_title(r"$\text{Score Distribution}$", fontsize=16)
-        ax_hist.set_xlabel(r"$\text{Model Score}$", fontsize=14)
-        ax_hist.legend()
-        wandb.log({"score_distribution": wandb.Image(fig_hist)})
-        plt.tight_layout()
 
         # Guardar modelo
         model_artifact = wandb.Artifact(
@@ -2042,32 +1997,73 @@ def generate_model_and_visuals(train_feat, train_lab, test_feat, test_lab, model
             messagebox.showwarning("Cancelled", "No file was selected.")
             return
 
-        # Llama a la función para exportar el CSV con el DataFrame df_shuffled
         mycsvfile(df_shuffled, final_csv)
-
         return Mymodel
 
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while generating the model or visuals:\n\n{e}")
+        messagebox.showerror("Error", f"An error occurred while generating the model:\n\n{e}")
         return None
 
 # Función para mostrar la figura seleccionada
 def show_selected_plot(plot_name):
-    figures = {
-        "Score Distribution": fig,
-        "Feature Importance": fig_imp,
-        "Confusion Matrix": fig_cm,
-        "Precision-Recall Curve": fig_pr,
-        "Score Histogram": fig_hist
-    }
+    try:
+        if Mymodel is None:
+            messagebox.showwarning("Model not loaded", "No model is available. Please train or load a model first.")
+            return
 
-    fig_to_show = figures.get(plot_name)
+        if plot_name == "Score Distribution":
+            fig, ax = plot_classifier_distributions(Mymodel, test=test, train=train, cols=cols, print_params=False)
+            ax.set_title(r"$\text{Classifier Score Distribution}$", fontsize=16)
+            ax.set_xlabel(r"$\text{Model Score}$", fontsize=14)
+            ax.set_ylabel(r"$\text{Frequency}$", fontsize=14)
+            plt.figure(fig.number)
+            plt.tight_layout()
+            plt.show()
 
-    if fig_to_show:
-        fig_to_show.tight_layout()
-        fig_to_show.show()
-    else:
-        messagebox.showerror("Error", "Selected plot is not available.")
+        elif plot_name == "Feature Importance":
+            fig, ax = plt.subplots(figsize=(10, 6))
+            xgb.plot_importance(Mymodel, ax=ax)
+            ax.set_title(r"$\text{Feature Importance (F Score)}$", fontsize=16)
+            plt.tight_layout()
+            plt.show()
+
+        elif plot_name == "Confusion Matrix":
+            cm = confusion_matrix(test_lab, Mymodel.predict(test_feat[cols]))
+            fig, ax = plt.subplots()
+            ConfusionMatrixDisplay(cm).plot(ax=ax)
+            ax.set_title(r"$\text{Confusion Matrix}$", fontsize=16)
+            plt.tight_layout()
+            plt.show()
+
+        elif plot_name == "Precision-Recall Curve":
+            probs = Mymodel.predict_proba(test_feat[cols])[:, 1]
+            precision, recall, _ = precision_recall_curve(test_lab, probs)
+            pr_auc = auc(recall, precision)
+            fig, ax = plt.subplots()
+            ax.plot(recall, precision, label=fr"$\text{{AUC}} = {pr_auc:.2f}$", color="purple")
+            ax.set_xlabel(r"$\text{Recall}$", fontsize=14)
+            ax.set_ylabel(r"$\text{Precision}$", fontsize=14)
+            ax.set_title(r"$\text{Precision-Recall Curve}$", fontsize=16)
+            ax.legend()
+            plt.tight_layout()
+            plt.show()
+
+        elif plot_name == "Score Histogram":
+            probs = Mymodel.predict_proba(test_feat[cols])[:, 1]
+            fig, ax = plt.subplots()
+            sns.histplot(probs[test_lab == 0], kde=True, color="red", label="Background", stat="density", ax=ax)
+            sns.histplot(probs[test_lab == 1], kde=True, color="blue", label="Signal", stat="density", ax=ax)
+            ax.set_title(r"$\text{Score Distribution}$", fontsize=16)
+            ax.set_xlabel(r"$\text{Model Score}$", fontsize=14)
+            ax.legend()
+            plt.tight_layout()
+            plt.show()
+
+        else:
+            messagebox.showerror("Error", "Selected plot is not recognized.")
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not display the plot:\n\n{e}")
 
 def carga_modelo():
     global modelv1
@@ -2193,7 +2189,7 @@ results_df = None
 # Función para cargar y filtrar datos del CSV
 def load_csv():
     global df_shuffled
-    file_path = filedialog.askopenfilename(title="Seleccione el archivo CSV", filetypes=[("Archivos CSV", "*.csv")])
+    file_path = filedialog.askopenfilename(title="Select CSV file", filetypes=[("CSV Files", "*.csv")])
     if file_path:
         try:
             df = pd.read_csv(file_path)
@@ -2202,11 +2198,11 @@ def load_csv():
             s_events = df[df['Td'] == "s"].head(factor_val)
             b_events = df[df['Td'] == "b"].head(factor_val)
             df_shuffled = pd.concat([s_events, b_events], ignore_index=True)
-            messagebox.showinfo("Carga exitosa", "Datos cargados y filtrados correctamente.")
+            messagebox.showinfo("Successful Load", "Data loaded and filtered successfully.")
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo cargar o filtrar el CSV:\n{e}")
+            messagebox.showerror("Error", f"Could not load or filter the CSV:\n{e}")
     else:
-        messagebox.showwarning("Cancelado", "No se seleccionó archivo.")
+        messagebox.showwarning("Cancelled", "No file was selected.")
 
 # Función para calcular la significancia
 def compute_significance(mypdf, xgb_cut, IntLumi, XSs, XSb, factor_val):
@@ -2227,7 +2223,7 @@ def calculate_significance_range():
     global results_df, df_shuffled
     try:
         if df_shuffled is None:
-            messagebox.showerror("Error", "Primero debe cargar el archivo CSV.")
+            messagebox.showerror("Error", "You must load the CSV file first.")
             return
         
         factor_val = int(factor_entry.get())
@@ -2254,90 +2250,113 @@ def calculate_significance_range():
                 xgb_val += 0.005
             
         results_df = pd.DataFrame({'Luminosity': Lumi_vals, 'XGB Cut': XGB_vals, 'Significance': Sig_vals})
-        messagebox.showinfo("Cálculo Completado", "El cálculo de la significancia se realizó correctamente.")
+        messagebox.showinfo("Calculation Completed", "Significance calculation completed successfully.")
 
         # Mostrar máxima significancia
         maxsig = max(Sig_vals)
         max_index = Sig_vals.index(maxsig)
         val_xgb = XGB_vals[max_index]
         val_lumi = Lumi_vals[max_index]
-        messagebox.showinfo("Resultados", f"Máxima significancia: {maxsig:.3f}\nXGB Cut: {val_xgb:.3f}\nLuminosidad: {val_lumi}")
+        messagebox.showinfo("Results", f"Maximum significance: {maxsig:.3f}\nXGB Cut: {val_xgb:.3f}\nLuminosity: {val_lumi}")
 
     except Exception as e:
-        messagebox.showerror("Error en Cálculo", f"Ocurrió un error durante el cálculo:\n{e}")
+        messagebox.showerror("Calculation Error", f"An error occurred during the calculation:\n{e}")
 
-# Función para guardar los resultados en un archivo CSV
-def save_results():
-    global results_df
     if results_df is None or results_df.empty:
-        messagebox.showerror("Error", "No hay resultados para guardar. Calcule la significancia primero.")
+        messagebox.showerror("Error", "There are no results to save. Please calculate the significance first.")
         return
-    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Archivos CSV", "*.csv")])
+    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
     if file_path:
         results_df.to_csv(file_path, index=False)
-        messagebox.showinfo("Guardado", f"Resultados guardados en: {file_path}")
+        messagebox.showinfo("Saved", f"Results saved to: {file_path}")
 
 # Función para graficar la significancia
 def plot_significance():
-    global results_df
+    global results_df  # Asegúrate que esto está definido y lleno
+
     if results_df is None or results_df.empty:
-        messagebox.showerror("Error", "No hay datos disponibles para graficar.")
+        messagebox.showerror("Error", "No data available to plot.")
         return
-    
-    Lumi_vals = results_df['Luminosity']
-    Sig_vals = results_df['Significance']
-    XGB_vals = results_df['XGB Cut']
 
-    # Crear gráfica
-    plt.figure(figsize=(10, 6))
-    scatter = plt.scatter(Lumi_vals, Sig_vals, c=XGB_vals, cmap='viridis')
-    plt.colorbar(scatter, label="XGB Cut")
-    plt.xlabel("Luminosity (fb$^{-1}$)")
-    plt.ylabel("Significance")
-    plt.title("Significance vs Luminosity")
-    plt.grid(True)
-    plt.show()
+    try:
+        # Datos originales
+        Lumi_vals = results_df['Luminosity'].values
+        Sig_vals = results_df['Significance'].values
+        XGB_vals = results_df['XGB Cut'].values
 
-    # Guardar la gráfica
-    file_path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=[("Image files", "*.jpg")])
-    if file_path:
-        plt.savefig(file_path, bbox_inches='tight')
-        messagebox.showinfo("Guardado", f"Gráfica guardada en: {file_path}")
+        # Crear malla de interpolación
+        xi = np.linspace(min(Lumi_vals), max(Lumi_vals), 200)
+        yi = np.linspace(min(Sig_vals), max(Sig_vals), 200)
+        xi, yi = np.meshgrid(xi, yi)
 
-# Interfaz de usuario
-tk.Label(tab5, text="Significancia Estadística").pack()
+        # Interpolación de los valores
+        zi = griddata((Lumi_vals, Sig_vals), XGB_vals, (xi, yi), method='cubic')
 
-# Botón para cargar archivo CSV
-frame_cargar = tk.Frame(tab5)
-frame_cargar.pack(pady=5)
-tk.Label(frame_cargar, text="Cargar CSV y aplicar filtros").pack(side="left", padx=5)
-tk.Button(frame_cargar, text="Cargar CSV", command=load_csv).pack(side="left", padx=5)
+        # Crear figura
+        plt.figure(figsize=(10, 6))
+        contour = plt.contourf(xi, yi, zi, levels=20, cmap='viridis')
+        cbar = plt.colorbar(contour)
+        cbar.set_label('XGB Cut', fontsize=14)
+        plt.xlabel('Luminosity (fb$^{-1}$)', fontsize=14)
+        plt.ylabel('Significance', fontsize=14)
+        plt.title('Interpolated Significance Map', fontsize=16)
+        plt.grid(True)
 
-# Entrada para Factor (cantidad de eventos)
-frame_factor = tk.Frame(tab5)
-frame_factor.pack(pady=5)
-tk.Label(frame_factor, text="Factor (cantidad de eventos):").pack(side="left")
-factor_entry = tk.Entry(frame_factor)
-factor_entry.pack(side="left", padx=5)
+        # Mostrar la figura
+        plt.tight_layout()
+        plt.show()
 
-# Entrada para XS Señal
-frame_signal = tk.Frame(tab5)
-frame_signal.pack(pady=5)
-tk.Label(frame_signal, text="XS Señal (pb):").pack(side="left")
-xsignal_entry = tk.Entry(frame_signal)
+        # Guardar
+        file_path = filedialog.asksaveasfilename(defaultextension=".jpg",
+                                                 filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")],
+                                                 title="Save interpolated plot as...")
+        if file_path:
+            plt.savefig(file_path, bbox_inches='tight')
+            messagebox.showinfo("Saved", f"Plot saved to: {file_path}")
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to generate interpolated plot:\n\n{e}")
+
+# ----------- Variables de Tab5 ----------- #
+factor_limite_2 = tk.StringVar(value="100")
+
+# ----------- Frame: Carga de CSV y Filtro ----------- #
+frame5_carga = ttk.LabelFrame(tab5, text="1. Load and Filter Events", padding=10)
+frame5_carga.pack(fill="x", padx=10, pady=10)
+
+row_carga5 = ttk.Frame(frame5_carga)
+row_carga5.pack(pady=5)
+
+ttk.Label(row_carga5, text="Event size:").pack(side="left", padx=5)
+factor_entry = ttk.Entry(row_carga5, textvariable=factor_limite_2, width=10).pack(side="left", padx=5)
+
+ttk.Label(row_carga5, text="Load and Filter CSV Events").pack(side="left", padx=5)
+ttk.Button(row_carga5, text="Load CSV", command=load_csv).pack(side="left", padx=5)
+
+# ----------- Frame: Cross-Sections ----------- #
+frame5_xs = ttk.LabelFrame(tab5, text="2. Cross-Sections", padding=10)
+frame5_xs.pack(fill="x", padx=10, pady=10)
+
+row_xs = ttk.Frame(frame5_xs)
+row_xs.pack(pady=5)
+
+ttk.Label(row_xs, text="XS Signal (pb):").pack(side="left", padx=5)
+xsignal_entry = ttk.Entry(row_xs, width=10)
 xsignal_entry.pack(side="left", padx=5)
 
-# Entrada para XS Background
-frame_background = tk.Frame(tab5)
-frame_background.pack(pady=5)
-tk.Label(frame_background, text="XS Background (pb):").pack(side="left")
-xbackground_entry = tk.Entry(frame_background)
+ttk.Label(row_xs, text="XS Background (pb):").pack(side="left", padx=5)
+xbackground_entry = ttk.Entry(row_xs, width=10)
 xbackground_entry.pack(side="left", padx=5)
 
-# Botones para calcular, guardar y graficar
-tk.Button(tab5, text="Calcular Significancia", command=calculate_significance_range).pack(pady=5)
-tk.Button(tab5, text="Guardar Resultados", command=save_results).pack(pady=5)
-tk.Button(tab5, text="Graficar Significancia", command=plot_significance).pack(pady=5)
+# ----------- Frame: Cálculo, Guardado y Gráficas ----------- #
+frame5_actions = ttk.LabelFrame(tab5, text="3. Run, Save and Visualize Significance", padding=10)
+frame5_actions.pack(fill="x", padx=10, pady=10)
+
+row_actions = ttk.Frame(frame5_actions)
+row_actions.pack(pady=5)
+
+ttk.Button(row_actions, text="Calculate Significance", command=calculate_significance_range).pack(side="left", padx=5)
+ttk.Button(row_actions, text="Plot Significance", command=plot_significance).pack(side="left", padx=5)
 
 root.mainloop()
 
