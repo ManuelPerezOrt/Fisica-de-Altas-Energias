@@ -429,7 +429,7 @@ def overwrite_cuartetos():
     messagebox.showinfo("Success", "The quartet combinations list has been successfully overwritten.")
 
 # ----------- Frame: Entrada de partículas ----------- #
-frame2_input = ttk.LabelFrame(tab2_scrollable, text="Add Final State Particles", padding=10)
+frame2_input = ttk.LabelFrame(tab2_scrollable, text="1. Add Final State Particles", padding=10)
 frame2_input.pack(fill="x", padx=10, pady=10)
 
 ttk.Label(frame2_input, text="Enter the quantity and type of the final state particle you want to analyze:").pack(anchor="w", pady=(0, 5))
@@ -448,7 +448,7 @@ ttk.Button(row_input, text="Add Particle", command=add_particle).pack(side="left
 ttk.Button(row_input, text="Remove Particle", command=remove_selected_particle).pack(side="left", padx=(0, 5))
 
 # ----------- Frame: Lista de partículas agregadas ----------- #
-frame2_lista = ttk.LabelFrame(tab2_scrollable, text="Particle List", padding=10)
+frame2_lista = ttk.LabelFrame(tab2_scrollable, text="2. Particle List", padding=10)
 frame2_lista.pack(fill="x", padx=10, pady=10)
 
 lista_frame = ttk.Frame(frame2_lista)
@@ -1392,7 +1392,7 @@ ajuste_var = tk.StringVar()
 ttk.Label(tab3_scrollable, text="Upload or create the SIGNAL files for event filtering and calculation").pack(pady=5, fill='x', expand=True)
 
 # --- Frame: Botones principales y barras de progreso ---
-frame_main_actions = ttk.LabelFrame(tab3_scrollable, text="Event Processing", padding=10)
+frame_main_actions = ttk.LabelFrame(tab3_scrollable, text="1. Event Processing", padding=10)
 frame_main_actions.pack(pady=5, fill='x', expand=True)
 
 filtrar_btn = ttk.Button(frame_main_actions, text="Filter Events", command=on_filtrar_eventos)
@@ -1414,7 +1414,7 @@ progress_bar_c["value"] = 0
 progress_bar_c.update()
 
 # --- Frame: Selección de columna ---
-frame_columna = ttk.LabelFrame(tab3_scrollable, text="Select Histogram Column", padding=10)
+frame_columna = ttk.LabelFrame(tab3_scrollable, text="2. Select Histogram Column", padding=10)
 frame_columna.pack(pady=5, fill='x', expand=True)
 
 ttk.Label(frame_columna, text="Select the column you want to display as a histogram once\n"
@@ -1424,7 +1424,7 @@ columna_menu = ttk.Combobox(frame_columna, textvariable=columna_var, values=list
 columna_menu.pack(pady=5, fill='x', expand=True)
 
 # --- Frame: Personalización del gráfico ---
-frame_grafico = ttk.LabelFrame(tab3_scrollable, text="Plot Customization", padding=10)
+frame_grafico = ttk.LabelFrame(tab3_scrollable, text="3. Plot Customization", padding=10)
 frame_grafico.pack(pady=5, fill='x', expand=True)
 
 # Subframe: Título y leyenda
@@ -1456,9 +1456,9 @@ frame_rango_bins_2 = ttk.Frame(frame_grafico)
 frame_rango_bins_2.pack(pady=5, fill='x', expand=True)
 
 ttk.Label(frame_rango_bins, text="X Range (min,max):").pack(side='left', fill='x', expand=True, padx=5)
-ttk.Entry(frame_rango_bins, textvariable=rango_x_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_rango_bins, textvariable=rango_x_var, width=5).pack(side='left', fill='x', expand=True, padx=5)
 ttk.Label(frame_rango_bins_2, text="Number of bins:").pack(side='left', fill='x', expand=True, padx=5)
-ttk.Entry(frame_rango_bins_2, textvariable=bins_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_rango_bins_2, textvariable=bins_var, width=2).pack(side='left', fill='x', expand=True, padx=5)
 
 # Subframe: Ajuste y escala
 frame_ajuste = ttk.Frame(frame_grafico)
@@ -2175,7 +2175,7 @@ row_wandb.pack(pady=5)
 
 ttk.Label(row_wandb, text="Enter your WandB API key:").pack(side="left", padx=5)
 ttk.Entry(row_wandb, textvariable=wandb_api_key, width=30).pack(side="left", padx=5)
-ttk.Button(row_wandb, text="Login to WandB", command=wandb_login_gui).pack(side="left", padx=5)
+ttk.Button(row_wandb, text="Login", command=wandb_login_gui).pack(side="left", padx=5)
 
 # ----------- Frame: Entrenamiento y optimización ----------- #
 frame4_train = ttk.LabelFrame(tab4_scrollable, text="5. Train and Optimize Model", padding=10)
