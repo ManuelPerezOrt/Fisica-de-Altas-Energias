@@ -44,6 +44,44 @@ combinaciones_trios = []
 combinaciones_cuartetos = []
 vars_for_train = [] 
 
+def create_scrollable_tab(notebook, title):
+    tab = ttk.Frame(notebook)
+    notebook.add(tab, text=title)
+
+    canvas = tk.Canvas(tab)
+    scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+
+    # Asegurar que el scroll funcione al cambiar el tamaño del contenido
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+    # Crear el frame dentro del canvas y obtener el ID para ajustar el ancho
+    window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+    # Vincular el ancho del scrollable_frame al ancho del canvas
+    def resize_scrollable_frame(event):
+        canvas.itemconfig(window_id, width=event.width)
+
+    canvas.bind("<Configure>", resize_scrollable_frame)
+
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    # Scroll con la rueda del mouse
+    def _on_mousewheel(event):
+        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+    return tab, scrollable_frame
+
 # Agregar tipos de archivos
 mimetypes.add_type('lhco', '.lhco')
 mimetypes.add_type('csv', '.csv')
@@ -139,7 +177,7 @@ def generate_background_csv():
 
 root = tk.Tk()
 root.title("Event Analysis Interface")
-root.geometry("550x800")
+root.geometry("497x800")
 
 # Create button style
 style = ttk.Style()
@@ -147,20 +185,15 @@ style.configure("TButton", font=("Segoe UI", 8), padding=3)
 
 # Create tabs
 tab_control = ttk.Notebook(root)
-tab1 = ttk.Frame(tab_control)
-tab2 = ttk.Frame(tab_control)
-tab3 = ttk.Frame(tab_control)
-tab4 = ttk.Frame(tab_control)
-tab5 = ttk.Frame(tab_control)
-tab_control.add(tab1, text='File Upload')
-tab_control.add(tab2, text='Particles to Analyze')
-tab_control.add(tab3, text='Calculation and Analysis')
-tab_control.add(tab4, text='Model Training')
-tab_control.add(tab5, text='Significance')
+tab1, tab1_scrollable = create_scrollable_tab(tab_control, 'File Upload')
+tab2, tab2_scrollable = create_scrollable_tab(tab_control, 'Particles to Analyze')
+tab3, tab3_scrollable = create_scrollable_tab(tab_control, 'Calculation and Analysis')
+tab4, tab4_scrollable = create_scrollable_tab(tab_control, 'Model Training')
+tab5, tab5_scrollable = create_scrollable_tab(tab_control, 'Significance')
 tab_control.pack(expand=1, fill='both')
 
 # ----------- Frame: Archivos de Señal ----------- #
-frame1_signal = ttk.LabelFrame(tab1, text="SIGNAL Files", padding=10)
+frame1_signal = ttk.LabelFrame(tab1_scrollable, text="SIGNAL Files", padding=10)
 frame1_signal.pack(fill="x", padx=10, pady=10)
 
 signal_row = ttk.Frame(frame1_signal)
@@ -184,7 +217,7 @@ ttk.Button(signal_buttons, text="Remove File", command=remove_selected_signal).p
 ttk.Button(signal_buttons, text="Generate Signal", command=generate_signal_csv).pack(pady=2)
 
 # ----------- Frame: Archivos de Background ----------- #
-frame1_background = ttk.LabelFrame(tab1, text="BACKGROUND Files", padding=10)
+frame1_background = ttk.LabelFrame(tab1_scrollable, text="BACKGROUND Files", padding=10)
 frame1_background.pack(fill="x", padx=10, pady=10)
 
 background_row = ttk.Frame(frame1_background)
@@ -396,7 +429,7 @@ def overwrite_cuartetos():
     messagebox.showinfo("Success", "The quartet combinations list has been successfully overwritten.")
 
 # ----------- Frame: Entrada de partículas ----------- #
-frame2_input = ttk.LabelFrame(tab2, text="Add Final State Particles", padding=10)
+frame2_input = ttk.LabelFrame(tab2_scrollable, text="Add Final State Particles", padding=10)
 frame2_input.pack(fill="x", padx=10, pady=10)
 
 ttk.Label(frame2_input, text="Enter the quantity and type of the final state particle you want to analyze:").pack(anchor="w", pady=(0, 5))
@@ -415,7 +448,7 @@ ttk.Button(row_input, text="Add Particle", command=add_particle).pack(side="left
 ttk.Button(row_input, text="Remove Particle", command=remove_selected_particle).pack(side="left", padx=(0, 5))
 
 # ----------- Frame: Lista de partículas agregadas ----------- #
-frame2_lista = ttk.LabelFrame(tab2, text="Particle List", padding=10)
+frame2_lista = ttk.LabelFrame(tab2_scrollable, text="Particle List", padding=10)
 frame2_lista.pack(fill="x", padx=10, pady=10)
 
 lista_frame = ttk.Frame(frame2_lista)
@@ -430,23 +463,23 @@ lista_box.pack(side="left", fill=tk.BOTH, expand=True)
 scrollbar_lista.config(command=lista_box.yview)
 
 # Texto explicativo
-ttk.Label(tab2, text=(
+ttk.Label(tab2_scrollable, text=(
     "The final list of numbered particles has the following format: [(x, y)] where:\n"
     "- x is the type of the particle.\n"
     "- y is its energy position.\n"
 ), justify="left").pack(padx=10, pady=(5, 10), anchor="w")
 
 # Botón para analizar
-ttk.Button(tab2, text="Analyze", command=analyze_particles).pack(pady=(0, 10))
+ttk.Button(tab2_scrollable, text="Analyze", command=analyze_particles).pack(pady=(0, 10))
 
 # Segundo texto explicativo
-ttk.Label(tab2, text=(
+ttk.Label(tab2_scrollable, text=(
     "Select the tuples, triplets, and quartets of particles that are of interest to you.\n"
     "This will speed up the calculation if you don't want to analyze all of them."
 ), justify="left").pack(padx=10, pady=(0, 10), anchor="w")
 
 # ----------- Frame: Combinaciones de Pares ----------- #
-frame2_pares = ttk.LabelFrame(tab2, text="Pair Combinations", padding=10)
+frame2_pares = ttk.LabelFrame(tab2_scrollable, text="Pair Combinations", padding=10)
 frame2_pares.pack(fill="x", padx=10, pady=5)
 
 pares_frame = ttk.Frame(frame2_pares)
@@ -462,7 +495,7 @@ comb_pares_listbox.config(yscrollcommand=comb_pares_scrollbar.set)
 ttk.Button(pares_frame, text="Overwrite List", command=overwrite_pares).pack(side="left", padx=10)
 
 # ----------- Frame: Combinaciones de Tríos ----------- #
-frame2_trios = ttk.LabelFrame(tab2, text="Triplet Combinations", padding=10)
+frame2_trios = ttk.LabelFrame(tab2_scrollable, text="Triplet Combinations", padding=10)
 frame2_trios.pack(fill="x", padx=10, pady=5)
 
 trios_frame = ttk.Frame(frame2_trios)
@@ -478,7 +511,7 @@ comb_trios_listbox.config(yscrollcommand=comb_trios_scrollbar.set)
 ttk.Button(trios_frame, text="Overwrite List", command=overwrite_trios).pack(side="left", padx=10)
 
 # ----------- Frame: Combinaciones de Cuartetos ----------- #
-frame2_cuartetos = ttk.LabelFrame(tab2, text="Quartet Combinations", padding=10)
+frame2_cuartetos = ttk.LabelFrame(tab2_scrollable, text="Quartet Combinations", padding=10)
 frame2_cuartetos.pack(fill="x", padx=10, pady=5)
 
 cuartetos_frame = ttk.Frame(frame2_cuartetos)
@@ -1356,87 +1389,93 @@ log_var = tk.BooleanVar()
 ajuste_var = tk.StringVar()
 
 # --- Encabezado principal ---
-ttk.Label(tab3, text="Upload or create the SIGNAL files for event filtering and calculation").pack(pady=10)
+ttk.Label(tab3_scrollable, text="Upload or create the SIGNAL files for event filtering and calculation").pack(pady=5, fill='x', expand=True)
 
 # --- Frame: Botones principales y barras de progreso ---
-frame_main_actions = ttk.LabelFrame(tab3, text="Event Processing", padding=10)
-frame_main_actions.pack(pady=10, fill=tk.X)
+frame_main_actions = ttk.LabelFrame(tab3_scrollable, text="Event Processing", padding=10)
+frame_main_actions.pack(pady=5, fill='x', expand=True)
 
 filtrar_btn = ttk.Button(frame_main_actions, text="Filter Events", command=on_filtrar_eventos)
-filtrar_btn.pack(pady=5)
+filtrar_btn.pack(pady=5, fill='x', expand=True)
 
 progress_var_f = tk.DoubleVar()
 progress_bar_f = ttk.Progressbar(frame_main_actions, variable=progress_var_f, maximum=100, length=400)
-progress_bar_f.pack(pady=5)
+progress_bar_f.pack(pady=5, fill='x', expand=True)
 progress_bar_f["value"] = 0
 progress_bar_f.update()
 
 calcular_btn = ttk.Button(frame_main_actions, text="Start Calculation", command=on_iniciar_calculo)
-calcular_btn.pack(pady=5)
+calcular_btn.pack(pady=5, fill='x', expand=True)
 
 progress_var_c = tk.DoubleVar()
 progress_bar_c = ttk.Progressbar(frame_main_actions, variable=progress_var_c, maximum=100, length=400)
-progress_bar_c.pack(pady=5)
+progress_bar_c.pack(pady=5, fill='x', expand=True)
 progress_bar_c["value"] = 0
 progress_bar_c.update()
 
 # --- Frame: Selección de columna ---
-frame_columna = ttk.LabelFrame(tab3, text="Select Histogram Column", padding=10)
-frame_columna.pack(pady=10, fill=tk.X)
+frame_columna = ttk.LabelFrame(tab3_scrollable, text="Select Histogram Column", padding=10)
+frame_columna.pack(pady=5, fill='x', expand=True)
 
 ttk.Label(frame_columna, text="Select the column you want to display as a histogram once\n"
-                              "the observables have been calculated:").pack(pady=5)
+                              "the observables have been calculated:").pack(pady=5, fill='x', expand=True)
 columna_var = tk.StringVar()
-columna_menu = ttk.Combobox(frame_columna, textvariable=columna_var, values=list(columns_to_check), width=80)
-columna_menu.pack(pady=5)
+columna_menu = ttk.Combobox(frame_columna, textvariable=columna_var, values=list(columns_to_check), width=50)
+columna_menu.pack(pady=5, fill='x', expand=True)
 
 # --- Frame: Personalización del gráfico ---
-frame_grafico = ttk.LabelFrame(tab3, text="Plot Customization", padding=10)
-frame_grafico.pack(pady=10, fill=tk.X)
+frame_grafico = ttk.LabelFrame(tab3_scrollable, text="Plot Customization", padding=10)
+frame_grafico.pack(pady=5, fill='x', expand=True)
 
 # Subframe: Título y leyenda
 frame_titulos = ttk.Frame(frame_grafico)
-frame_titulos.pack(pady=5, fill=tk.X)
+frame_titulos.pack(pady=5, fill='x', expand=True)
+frame_titulos_2 = ttk.Frame(frame_grafico)
+frame_titulos_2.pack(pady=5, fill='x', expand=True)
 
-ttk.Label(frame_titulos, text="Custom title:").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_titulos, textvariable=titulo_var, width=30).pack(side=tk.LEFT, padx=5)
-ttk.Label(frame_titulos, text="Legend title:").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_titulos, textvariable=legend_var, width=30).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_titulos, text="Custom title:").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_titulos, textvariable=titulo_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Label(frame_titulos_2, text="Legend title:").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_titulos_2, textvariable=legend_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
 
 # Subframe: Ejes
 frame_ejes = ttk.Frame(frame_grafico)
-frame_ejes.pack(pady=5, fill=tk.X)
+frame_ejes.pack(pady=5, fill='x', expand=True)
+frame_ejes_2 = ttk.Frame(frame_grafico)
+frame_ejes_2.pack(pady=5, fill='x', expand=True)
 
-ttk.Label(frame_ejes, text="X-axis label:").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_ejes, textvariable=xlabel_var, width=30).pack(side=tk.LEFT, padx=5)
-ttk.Label(frame_ejes, text="Y-axis label:").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_ejes, textvariable=ylabel_var, width=30).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_ejes, text="X-axis label:").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_ejes, textvariable=xlabel_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Label(frame_ejes_2, text="Y-axis label:").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_ejes_2, textvariable=ylabel_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
 
 # Subframe: Rango y Bins
 frame_rango_bins = ttk.Frame(frame_grafico)
-frame_rango_bins.pack(pady=5, fill=tk.X)
+frame_rango_bins.pack(pady=5, fill='x', expand=True)
+frame_rango_bins_2 = ttk.Frame(frame_grafico)
+frame_rango_bins_2.pack(pady=5, fill='x', expand=True)
 
-ttk.Label(frame_rango_bins, text="X Range (min,max):").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_rango_bins, textvariable=rango_x_var, width=25).pack(side=tk.LEFT, padx=5)
-ttk.Label(frame_rango_bins, text="Number of bins:").pack(side=tk.LEFT, padx=5)
-ttk.Entry(frame_rango_bins, textvariable=bins_var, width=30).pack(side=tk.LEFT, padx=5)
+ttk.Label(frame_rango_bins, text="X Range (min,max):").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_rango_bins, textvariable=rango_x_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Label(frame_rango_bins_2, text="Number of bins:").pack(side='left', fill='x', expand=True, padx=5)
+ttk.Entry(frame_rango_bins_2, textvariable=bins_var, width=30).pack(side='left', fill='x', expand=True, padx=5)
 
 # Subframe: Ajuste y escala
 frame_ajuste = ttk.Frame(frame_grafico)
-frame_ajuste.pack(pady=5, fill=tk.X)
+frame_ajuste.pack(pady=5, fill='x', expand=True)
 
-ttk.Checkbutton(frame_ajuste, text="Logarithmic Scale", variable=log_var).pack(side=tk.LEFT, padx=5)
-ttk.Label(frame_ajuste, text="Fit type:").pack(side=tk.LEFT, padx=5)
+ttk.Checkbutton(frame_ajuste, text="Logarithmic Scale", variable=log_var).pack(side='left', fill='x', expand=True, padx=5)
+ttk.Label(frame_ajuste, text="Fit type:").pack(side='left', fill='x', expand=True, padx=5)
 ttk.Combobox(
     frame_ajuste,
     textvariable=ajuste_var,
     values=["None", "KDE", "Gaussian", "Exponential"],
     state="readonly",
     width=15
-).pack(side=tk.LEFT, padx=5)
+).pack(side='left', fill='x', expand=True, padx=5)
 
 # --- Botón final para generar gráfica ---
-ttk.Button(tab3, text="Generate Plot", command=generar_grafica_v2).pack(pady=10)
+ttk.Button(tab3_scrollable, text="Generate Plot", command=generar_grafica_v2).pack(pady=5, fill='x', expand=True)
 
 #### Pestaña 4 ####
 
@@ -2082,7 +2121,7 @@ factor_limite = tk.StringVar(value="100")
 size = tk.DoubleVar(value=0.8)
 
 # ----------- Frame: Carga de datos ----------- #
-frame4_carga = ttk.LabelFrame(tab4, text="1. Load and Visualize Data", padding=10)
+frame4_carga = ttk.LabelFrame(tab4_scrollable, text="1. Load and Visualize Data", padding=10)
 frame4_carga.pack(fill="x", padx=10, pady=10)
 
 row_carga = ttk.Frame(frame4_carga)
@@ -2094,7 +2133,7 @@ text_widget = tk.Text(frame4_carga, height=5, width=60)
 text_widget.pack(pady=5)
 
 # ----------- Frame: Filtrado y Preprocesamiento ----------- #
-frame4_filter = ttk.LabelFrame(tab4, text="2. Filter and Process Data", padding=10)
+frame4_filter = ttk.LabelFrame(tab4_scrollable, text="2. Filter and Process Data", padding=10)
 frame4_filter.pack(fill="x", padx=10, pady=10)
 
 ttk.Label(frame4_filter, text="Choose signal/background event size (optional, recommended 50/50):").pack(pady=5)
@@ -2112,7 +2151,7 @@ text_widget_2 = tk.Text(frame4_filter, height=5, width=60)
 text_widget_2.pack(pady=5)
 
 # ----------- Frame: Proporción de entrenamiento ----------- #
-frame4_split = ttk.LabelFrame(tab4, text="3. Train-Test Split", padding=10)
+frame4_split = ttk.LabelFrame(tab4_scrollable, text="3. Train-Test Split", padding=10)
 frame4_split.pack(fill="x", padx=10, pady=10)
 
 row_split = ttk.Frame(frame4_split)
@@ -2122,7 +2161,7 @@ ttk.Label(row_split, text="Enter training set proportion (e.g., 0.8):").pack(sid
 ttk.Entry(row_split, textvariable=size, width=10).pack(side="left", padx=5)
 
 # ----------- Frame: WandB Login ----------- #
-frame4_wandb = ttk.LabelFrame(tab4, text="4. Weights & Biases Login", padding=10)
+frame4_wandb = ttk.LabelFrame(tab4_scrollable, text="4. Weights & Biases Login", padding=10)
 frame4_wandb.pack(fill="x", padx=10, pady=10)
 
 row_wandbname = ttk.Frame(frame4_wandb)
@@ -2139,7 +2178,7 @@ ttk.Entry(row_wandb, textvariable=wandb_api_key, width=30).pack(side="left", pad
 ttk.Button(row_wandb, text="Login to WandB", command=wandb_login_gui).pack(side="left", padx=5)
 
 # ----------- Frame: Entrenamiento y optimización ----------- #
-frame4_train = ttk.LabelFrame(tab4, text="5. Train and Optimize Model", padding=10)
+frame4_train = ttk.LabelFrame(tab4_scrollable, text="5. Train and Optimize Model", padding=10)
 frame4_train.pack(fill="x", padx=10, pady=10)
 
 row_trmodel = ttk.Frame(frame4_train)
@@ -2156,7 +2195,7 @@ text_widget_3 = tk.Text(frame4_train, height=5, width=60)
 text_widget_3.pack(pady=5)
 
 # ----------- Frame: Visualización de gráficas ----------- #
-frame4_graphs = ttk.LabelFrame(tab4, text="6. Visualize Generated Plots", padding=10)
+frame4_graphs = ttk.LabelFrame(tab4_scrollable, text="6. Visualize Generated Plots", padding=10)
 frame4_graphs.pack(fill="x", padx=10, pady=10)
 
 # Lista de nombres de gráficas disponibles
@@ -2321,7 +2360,7 @@ def plot_significance():
 factor_limite_2 = tk.StringVar(value="100")
 
 # ----------- Frame: Carga de CSV y Filtro ----------- #
-frame5_carga = ttk.LabelFrame(tab5, text="1. Load and Filter Events", padding=10)
+frame5_carga = ttk.LabelFrame(tab5_scrollable, text="1. Load and Filter Events", padding=10)
 frame5_carga.pack(fill="x", padx=10, pady=10)
 
 row_carga5 = ttk.Frame(frame5_carga)
@@ -2334,7 +2373,7 @@ ttk.Label(row_carga5, text="Load and Filter CSV Events").pack(side="left", padx=
 ttk.Button(row_carga5, text="Load CSV", command=load_csv).pack(side="left", padx=5)
 
 # ----------- Frame: Cross-Sections ----------- #
-frame5_xs = ttk.LabelFrame(tab5, text="2. Cross-Sections", padding=10)
+frame5_xs = ttk.LabelFrame(tab5_scrollable, text="2. Cross-Sections", padding=10)
 frame5_xs.pack(fill="x", padx=10, pady=10)
 
 row_xs = ttk.Frame(frame5_xs)
@@ -2349,7 +2388,7 @@ xbackground_entry = ttk.Entry(row_xs, width=10)
 xbackground_entry.pack(side="left", padx=5)
 
 # ----------- Frame: Cálculo, Guardado y Gráficas ----------- #
-frame5_actions = ttk.LabelFrame(tab5, text="3. Run, Save and Visualize Significance", padding=10)
+frame5_actions = ttk.LabelFrame(tab5_scrollable, text="3. Run, Save and Visualize Significance", padding=10)
 frame5_actions.pack(fill="x", padx=10, pady=10)
 
 row_actions = ttk.Frame(frame5_actions)
