@@ -1610,13 +1610,18 @@ print('Number of signal events: {}'.format(len(df_shuffled[df_shuffled.Td == 's'
 print('Number of background events: {}'.format(len(df_shuffled[df_shuffled.Td == 'b'])))
 print('Fraction signal: {}'.format(len(df_shuffled[df_shuffled.Td == 's'])/(float)(len(df_shuffled[df_shuffled.Td == 's']) + len(df_shuffled[df_shuffled.Td == 'b']))))
 
-factor=int(input("It is recommended to have a fraction signal=0.5, to what extent will the amount of data be limited for both background and signal: ")) 
-s_events = df_shuffled[df_shuffled['Td'] == "s"].head(factor)  # specified number of signal events
-b_events = df_shuffled[df_shuffled['Td'] == "b"].head(factor)  #specified number of background events
+#factor=int(input("It is recommended to have a fraction signal=0.5, to what extent will the amount of data be limited for both background and signal: ")) 
+#s_events = df_shuffled[df_shuffled['Td'] == "s"].head(factor)  # specified number of signal events
+#b_events = df_shuffled[df_shuffled['Td'] == "b"].head(factor)  #specified number of background events
+s_events = df_shuffled[df_shuffled['Td'] == "s"]  # specified number of signal events
+b_events = df_shuffled[df_shuffled['Td'] == "b"]  #specified number of background events
 
 # Combining filtered signal and background datasets for training
 df_shuffled = pd.concat([s_events, b_events], ignore_index=True)
-
+s_events=len(df_shuffled[df_shuffled.Td == 's'])
+b_events=len(df_shuffled[df_shuffled.Td == 'b'])
+print(s_events)
+print(b_events)
 XSsignal = float(input("Enter the cross section of the signal in pb: ")) # Sección eficaz de la señal
 XSbackground = float(input("Enter the cross section of the background in pb: "))  # Sección eficaz del background
 
@@ -1627,12 +1632,12 @@ def CalSig(mypdf, xgbcut,IntLumi,XSs,XSb):
 
     Ns_csv = len(mypdf[mypdf.Td == "s"])
     Nb_csv = len(mypdf[mypdf.Td == "b"])
-    fraction_csv_s = Ns_csv / factor
-    fraction_csv_b = Nb_csv / factor
+    fraction_csv_s = Ns_csv / s_events
+    fraction_csv_b = Nb_csv / b_events
     pbTOfb = 1000  # factor conversión de pb a fb
     #IntLumi = 3000  # Luminosidad integrada
-    alpha = XSs * pbTOfb * IntLumi / factor # Factor de escalamiento de los eventos generados a eventos calculados de la señal
-    beta = XSb * pbTOfb * IntLumi / factor  # Factor de escalamiento de los eventos generados a eventos calculados del background
+    alpha = XSs * pbTOfb * IntLumi / s_events # Factor de escalamiento de los eventos generados a eventos calculados de la señal
+    beta = XSb * pbTOfb * IntLumi / b_events  # Factor de escalamiento de los eventos generados a eventos calculados del background
 
     try:
         Sig = (alpha * Ns_csv) / (math.sqrt((alpha * Ns_csv) + (beta * Nb_csv)))
