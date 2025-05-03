@@ -528,74 +528,63 @@ ttk.Button(cuartetos_frame, text="Overwrite List", command=overwrite_cuartetos).
 
 ##### Aqui inicia la tercer pestaña
 
-#FUNCION PARA FILTRAR LOS EVENTOS
+# FUNCION PARA FILTRAR LOS EVENTOS
 def filtrar_eventos(df, num_list):
-    global progress_bar_f, progress_var_f
+    event_indices = []
+    current_event = []
+    current_event_number = None
+    num_list_first_elements = [t[0] for t in num_list]
+    num_list_first_third_elements = [(t[0], t[2]) for t in num_list]
 
-    # Mostrar barra al iniciar
-    progress_bar_f["value"] = 0
-    progress_bar_f.update()
+    for _, row in df.iterrows():
+        if row['#'] == 0:
+            if current_event:
+                event_typ_counts = [r['typ'] for r in current_event]
+                event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+                if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
+                    if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
+                        event_indices.extend(current_event)
+            current_event = []
+        current_event.append(row)
 
-    try:
-        event_indices = []
-        current_event = []
-        current_event_number = None
-        num_list_first_elements = [t[0] for t in num_list]
-        num_list_first_third_elements = [(t[0], t[2]) for t in num_list]
-        total_rows = len(df)
+    # Último evento
+    if current_event:
+        event_typ_counts = [r['typ'] for r in current_event]
+        event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+        if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
+            if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
+                event_indices.extend(current_event)
 
-        for i, row in df.iterrows():
-            if row['#'] == 0:
-                if current_event:
-                    event_typ_counts = [r['typ'] for r in current_event]
-                    event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
-                    if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
-                        if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                            event_indices.extend(current_event)
-                current_event = []
-                current_event_number = row['#']
-            current_event.append(row)
+    return pd.DataFrame(event_indices)
 
-            # Actualizar barra de progreso
-            progress = ((i + 1) / total_rows) * 100
-            progress_var_f.set(progress)
-            progress_bar_f.update()
-
-        # Último evento
-        if current_event:
-            event_typ_counts = [r['typ'] for r in current_event]
-            event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
-            if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
-                if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                    event_indices.extend(current_event)
-
-        # Ocultar barra al finalizar (opcional)
-        progress_var_f.set(0)
-        progress_bar_f.update()
-
-        return pd.DataFrame(event_indices)
-
-    except Exception as e:
-        messagebox.showerror("Error", f"Error during event filtering: {e}")
-        return pd.DataFrame()
     
 #FUNCION PARA PROCESAR LOS EVENTOS EN BLOQUES
-def procesar_en_bloques(df, num_list, bloque_tamano=10000):
+def procesar_en_bloques(df, num_list, progress_var=None, progress_bar=None, bloque_tamano=10000):
     total_filas = len(df)
     resultados = []
     inicio = 0
+    filas_procesadas = 0
 
     while inicio < total_filas:
         fin = inicio + bloque_tamano
-
-        # Asegúrate de no cortar eventos
         while fin < total_filas and df.iloc[fin]['#'] != 0:
             fin += 1
 
         bloque = df.iloc[inicio:fin]
         resultado_bloque = filtrar_eventos(bloque, num_list)
         resultados.append(resultado_bloque)
+
+        filas_procesadas += len(bloque)
         inicio = fin
+
+        if progress_var and progress_bar:
+            progreso = (filas_procesadas / total_filas) * 100
+            progress_var.set(progreso)
+            progress_bar.update()
+
+    if progress_var:
+        progress_var.set(100)
+        progress_bar.update()
 
     return pd.concat(resultados, ignore_index=True)
 
@@ -868,23 +857,13 @@ def m_inv(evento, comb):
 def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos, batch_size=300):
     global progress_bar_c, progress_var_c
 
-    masainv = []
-    masainv_trios = []
-    masainv_cuartetos = []
-    masatrans = []
-    deltar = []
-    no_jets = []
-    pt = []
-    phi = []
-    eta = []
-    X_eta = []
-    Ratio_pt = []
+    masainv, masainv_trios, masainv_cuartetos = [], [], []
+    masatrans, deltar, no_jets = [], [], []
+    pt, phi, eta, X_eta, Ratio_pt = [], [], [], [], []
 
     total_batches = (len(df) + batch_size - 1) // batch_size
-    start = 0
-    batch_index = 0
+    start, batch_index = 0, 0
 
-    # Mostrar barra al iniciar
     progress_bar_c["value"] = 0
     progress_bar_c.update()
 
@@ -892,154 +871,104 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
         end = start + batch_size
         while end < len(df) and df.iloc[end]['#'] != 0:
             end += 1
-
         batch_df = df.iloc[start:end]
-        current_event = []
-        current_event_number = None
 
+        current_event = []
         for _, row in batch_df.iterrows():
-            if row['#'] == 0:
-                if current_event:
-                    event_df = pd.DataFrame(current_event)
-                    no_jets.append(Num_jets(event_df))
-                    for i in combinaciones_cuartetos:
-                        masainv_cuartetos.append(m_inv(event_df, i))
-                    for i in combinaciones_trios:
-                        masainv_trios.append(m_inv(event_df, i))
-                    for i in lista_num_mod:
-                        pt.append(pt_part(event_df, i))
-                        eta.append(eta_part(event_df, i))
-                        phi.append(phi_part(event_df, i))
-                    for i in combinaciones_pares:
-                        masainv.append(m_inv(event_df, i))
-                        masatrans.append(m_trans(event_df, i))
-                        deltar.append(Deltar(event_df, i))
-                        Ratio_pt.append(RatioPt(event_df, i))
-                        X_eta.append(ProductEta(event_df, i))
+            if row['#'] == 0 and current_event:
+                event_df = pd.DataFrame(current_event)
+                no_jets.append(Num_jets(event_df))
+
+                masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
+                masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
+
+                pt.extend([pt_part(event_df, i) for i in lista_num_mod])
+                eta.extend([eta_part(event_df, i) for i in lista_num_mod])
+                phi.extend([phi_part(event_df, i) for i in lista_num_mod])
+
+                for c in combinaciones_pares:
+                    masainv.append(m_inv(event_df, c))
+                    masatrans.append(m_trans(event_df, c))
+                    deltar.append(Deltar(event_df, c))
+                    Ratio_pt.append(RatioPt(event_df, c))
+                    X_eta.append(ProductEta(event_df, c))
+
                 current_event = []
-                current_event_number = row['#']
             current_event.append(row)
 
+        # Procesar último evento del batch
         if current_event:
             event_df = pd.DataFrame(current_event)
             no_jets.append(Num_jets(event_df))
-            for i in combinaciones_cuartetos:
-                masainv_cuartetos.append(m_inv(event_df, i))
-            for i in combinaciones_trios:
-                masainv_trios.append(m_inv(event_df, i))
-            for i in lista_num_mod:
-                pt.append(pt_part(event_df, i))
-                eta.append(eta_part(event_df, i))
-                phi.append(phi_part(event_df, i))
-            for i in combinaciones_pares:
-                masainv.append(m_inv(event_df, i))
-                masatrans.append(m_trans(event_df, i))
-                deltar.append(Deltar(event_df, i))
-                Ratio_pt.append(RatioPt(event_df, i))
-                X_eta.append(ProductEta(event_df, i))
 
-        # Actualizar barra de progreso
+            masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
+            masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
+
+            pt.extend([pt_part(event_df, i) for i in lista_num_mod])
+            eta.extend([eta_part(event_df, i) for i in lista_num_mod])
+            phi.extend([phi_part(event_df, i) for i in lista_num_mod])
+
+            for c in combinaciones_pares:
+                masainv.append(m_inv(event_df, c))
+                masatrans.append(m_trans(event_df, c))
+                deltar.append(Deltar(event_df, c))
+                Ratio_pt.append(RatioPt(event_df, c))
+                X_eta.append(ProductEta(event_df, c))
+
+        # Progreso
         batch_index += 1
-        progress = (batch_index / total_batches) * 100
-        progress_var_c.set(progress)
+        progress_var_c.set((batch_index / total_batches) * 100)
         progress_bar_c.update()
-
         start = end
 
-    # Ocultar barra al terminar (opcional)
     progress_var_c.set(0)
     progress_bar_c.update()
 
-    masainv_trios = np.array(masainv_trios)
-    if masainv_trios.size > 0:
-        a = int(len(masainv_trios) / len(combinaciones_trios))
-        masainv_trios = masainv_trios.reshape(a, -1)
-    masainv_cuartetos = np.array(masainv_cuartetos)
-    if masainv_cuartetos.size > 0:
-        a = int(len(masainv_cuartetos) / len(combinaciones_cuartetos))
-        masainv_cuartetos = masainv_cuartetos.reshape(a, -1)
-    deltar = np.array(deltar)
-    if deltar.size > 0:
-        a = int(len(deltar) / len(combinaciones_pares))
-        deltar = deltar.reshape(a, -1)
-    X_eta = np.array(X_eta)
-    if X_eta.size > 0:
-        a = int(len(X_eta) / len(combinaciones_pares))
-        X_eta = X_eta.reshape(a, -1)
-    Ratio_pt = np.array(Ratio_pt)
-    if Ratio_pt.size > 0:
-        a = int(len(Ratio_pt) / len(combinaciones_pares))
-        Ratio_pt = Ratio_pt.reshape(a, -1)
-    phi = np.array(phi)
-    if phi.size > 0:
-        a = int(len(phi) / len(lista_num))
-        phi = phi.reshape(a, -1)
-    eta = np.array(eta)
-    if eta.size > 0:
-        a = int(len(eta) / len(lista_num))
-        eta = eta.reshape(a, -1)
-    pt = np.array(pt)
-    if pt.size > 0:
-        a = int(len(pt) / len(lista_num))
-        pt = pt.reshape(a, -1)
-    masainv = np.array(masainv)
-    if masainv.size > 0:
-        a = int(len(masainv) / len(combinaciones_pares))
-        masainv = masainv.reshape(a, -1)
-    masatrans = np.array(masatrans)
-    if masatrans.size > 0:
-        b = int(len(masatrans) / len(combinaciones_pares))
-        masatrans = masatrans.reshape(b, -1)
+    def reshape_array(arr, n):
+        arr = np.array(arr)
+        return arr.reshape((len(arr) // n, n)) if arr.size > 0 else arr
 
-    columtrios = []
-    columcuartetos = []
-    columpares = []
-    columpares1 = []
-    columpares2 = []
-    columpares3 = []
-    columpares4 = []
-    colum = []
-    colum1 = []
-    colum2 = []
-    for i in lista_num_names:
-        cadena = tupla_a_cadena(i)
-        colum.append('Pt ' + cadena)
-        colum1.append('Eta ' + cadena)
-        colum2.append('Phi ' + cadena)
-    for i in comb_pares_names:
-        cadena = tupla_a_cadena(i)
-        columpares.append('m_inv ' + cadena)
-    for i in comb_pares_names:
-        cadena = tupla_a_cadena(i)
-        columpares1.append('m_trans ' + cadena)
-    for i in comb_pares_names:
-        cadena = tupla_a_cadena(i)
-        columpares2.append('deltaR ' + cadena)
-    for i in comb_trios_names:
-        cadena = tupla_a_cadena(i)
-        columtrios.append('m_inv ' + cadena)
-    for i in comb_cuartetos_names:
-        cadena = tupla_a_cadena(i)
-        columcuartetos.append('m_inv ' + cadena)
-    for i in comb_pares_names:
-        cadena = tupla_a_cadena(i)
-        columpares3.append('PT1/PT2'+ cadena)
-    for i in comb_pares_names:
-        cadena = tupla_a_cadena(i)
-        columpares4.append('Eta1*Eta2' + cadena)
+    masainv_trios     = reshape_array(masainv_trios, len(combinaciones_trios))
+    masainv_cuartetos = reshape_array(masainv_cuartetos, len(combinaciones_cuartetos))
+    deltar            = reshape_array(deltar, len(combinaciones_pares))
+    X_eta             = reshape_array(X_eta, len(combinaciones_pares))
+    Ratio_pt          = reshape_array(Ratio_pt, len(combinaciones_pares))
+    phi               = reshape_array(phi, len(lista_num))
+    eta               = reshape_array(eta, len(lista_num))
+    pt                = reshape_array(pt, len(lista_num))
+    masainv           = reshape_array(masainv, len(combinaciones_pares))
+    masatrans         = reshape_array(masatrans, len(combinaciones_pares))
 
-    csv_columtrios = pd.DataFrame(masainv_trios, columns=columtrios) if masainv_trios.size > 0 else pd.DataFrame()
-    csv_columcuartetos = pd.DataFrame(masainv_cuartetos, columns=columcuartetos) if masainv_cuartetos.size > 0 else pd.DataFrame()
-    csv_deltar = pd.DataFrame(deltar, columns=columpares2) if deltar.size > 0 else pd.DataFrame()
-    csv_pt = pd.DataFrame(pt, columns=colum) if pt.size > 0 else pd.DataFrame()
-    csv_eta = pd.DataFrame(eta, columns=colum1) if eta.size > 0 else pd.DataFrame()
-    csv_phi = pd.DataFrame(phi, columns=colum2) if phi.size > 0 else pd.DataFrame()
-    csv_minv = pd.DataFrame(masainv, columns=columpares) if masainv.size > 0 else pd.DataFrame()
-    csv_mtrans = pd.DataFrame(masatrans, columns=columpares1) if masatrans.size > 0 else pd.DataFrame()
-    csv_ratiopt = pd.DataFrame(Ratio_pt, columns=columpares3) if Ratio_pt.size > 0 else pd.DataFrame()
-    csv_prdeta = pd.DataFrame(X_eta, columns=columpares4) if X_eta.size > 0 else pd.DataFrame()
-    # Concatenar solo los DataFrames que no están vacíos
-    csv_combined = pd.concat([csv_phi, csv_eta, csv_pt, csv_minv, csv_mtrans, csv_deltar, csv_columtrios, csv_columcuartetos,csv_ratiopt,csv_prdeta], axis=1)
+    def nombre_cols(prefix, nombres):
+        return [prefix + tupla_a_cadena(i) for i in nombres]
+
+    colum     = nombre_cols('Pt ', lista_num_names)
+    colum1    = nombre_cols('Eta ', lista_num_names)
+    colum2    = nombre_cols('Phi ', lista_num_names)
+    columpares  = nombre_cols('m_inv ', comb_pares_names)
+    columpares1 = nombre_cols('m_trans ', comb_pares_names)
+    columpares2 = nombre_cols('deltaR ', comb_pares_names)
+    columtrios  = nombre_cols('m_inv ', comb_trios_names)
+    columcuartetos = nombre_cols('m_inv ', comb_cuartetos_names)
+    columpares3 = nombre_cols('PT1/PT2', comb_pares_names)
+    columpares4 = nombre_cols('Eta1*Eta2', comb_pares_names)
+
+    # Convertir arrays a DataFrames solo si tienen contenido
+    def safe_df(data, cols): return pd.DataFrame(data, columns=cols) if len(data) > 0 else pd.DataFrame()
+
+    csv_combined = pd.concat([
+        safe_df(phi, colum2),
+        safe_df(eta, colum1),
+        safe_df(pt, colum),
+        safe_df(masainv, columpares),
+        safe_df(masatrans, columpares1),
+        safe_df(deltar, columpares2),
+        safe_df(masainv_trios, columtrios),
+        safe_df(masainv_cuartetos, columcuartetos),
+        safe_df(Ratio_pt, columpares3),
+        safe_df(X_eta, columpares4)
+    ], axis=1)
+
     csv_combined["No_jets"] = no_jets
     return csv_combined
 
@@ -1047,52 +976,48 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
 def on_filtrar_eventos():
     global filtered_dfsg
 
-    # Preguntar al usuario si desea cargar un archivo filtrado en lugar de hacer el filtrado
     choice = messagebox.askyesno("Load SIGNAL file", "Do you want to load a filtered SIGNAL file instead of processing it?")
-    
-    if choice:  # Si elige "Sí", permite cargar los archivos
+    if choice:
         file_sg = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Load filtered SIGNAL")
-        
         if file_sg:
             try:
                 filtered_dfsg = pd.read_csv(file_sg)
                 messagebox.showinfo("Success", "Filtered file loaded successfully.")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load the file: {e}")
-        return  # Salir de la función si ya se cargaron los archivos
-
-    # Si no se cargan archivos, proceder con el filtrado normal
-    if filtered_dfsg is None:
-        messagebox.showerror("Error", "The DataFrames have not been loaded. Make sure they have been generated before filtering.")
         return
 
-    filtrar_btn.config(state=tk.DISABLED)  # Deshabilitar botón mientras se filtra
+    if filtered_dfsg is None:
+        messagebox.showerror("Error", "The DataFrames have not been loaded.")
+        return
+
+    file_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save Filtered SIGNAL")
+    if not file_sg:
+        messagebox.showerror("Error", "You must select a name for the filtered file.")
+        return
+
+    filtrar_btn.config(state=tk.DISABLED)
     messagebox.showinfo("Information", "Starting the filtering process...")
 
-    def ejecutar_filtrado():
+    def ejecutar_filtrado(path):
         global filtered_dfsg
 
         try:
-            file_sg = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")], title="Save Filtered SIGNAL")
-            if not file_sg:
-                messagebox.showerror("Error", "You must select names for the filtered file.")
-                return
+            filtered_dfsg = procesar_en_bloques(filtered_dfsg, lista_num_mod, progress_var=progress_var_f, progress_bar=progress_bar_f, bloque_tamano=100000)
+            filtered_dfsg.to_csv(path, index=False)
 
-            # Filtrar en bloques
-            filtered_dfsg = procesar_en_bloques(filtered_dfsg, lista_num_mod, bloque_tamano=100000)
-            filtered_dfsg.to_csv(file_sg, index=False)
-
-            messagebox.showinfo("Success", f"Filtering completed.\nSignal saved at: {file_sg}")
+            filtrar_btn.after(0, lambda: messagebox.showinfo("Success", f"Filtering completed.\nSignal saved at: {path}"))
 
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred while filtering the events: {e}")
+            filtrar_btn.after(0, lambda: messagebox.showerror("Error", f"An error occurred while filtering the events: {e}"))
 
         finally:
-            filtrar_btn.config(state=tk.NORMAL)  # Reactivar el botón al finalizar
+            filtrar_btn.after(0, lambda: filtrar_btn.config(state=tk.NORMAL))
+            progress_var_f.set(0)
+            progress_bar_f.update()
 
-    # Ejecutar en un hilo separado para no bloquear la interfaz
-    hilo_filtrado = threading.Thread(target=ejecutar_filtrado)
-    hilo_filtrado.start()
+    threading.Thread(target=ejecutar_filtrado, args=(file_sg,)).start()
+
 #FUNCION PARA INICIAR EL CALCULO
 def on_iniciar_calculo():
     global Final_name, columns_to_check, df_combined
@@ -1862,14 +1787,11 @@ import xgboost as xgb
 
 def train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_labels, size):
     global eval_set, test, train, cols, vars_for_train, modelv1
-    global train_feat, train_lab, test_feat, test_lab
+    global train_feat, train_lab, test_feat, test_lab, _ks_back, _ks_sign
 
     try:
-        # 1. División de datos
-        train_sig_feat, test_sig_feat, train_sig_lab, test_sig_lab = train_test_split(
-            signal_features, signal_lab, test_size=size, random_state=1)
-        train_bkg_feat, test_bkg_feat, train_bkg_lab, test_bkg_lab = train_test_split(
-            bkgnd_features, bkgnd_labels, test_size=size, random_state=1)
+        train_sig_feat, test_sig_feat, train_sig_lab, test_sig_lab = train_test_split(signal_features, signal_lab, test_size=size, random_state=1)
+        train_bkg_feat, test_bkg_feat, train_bkg_lab, test_bkg_lab = train_test_split(bkgnd_features, bkgnd_labels, test_size=size, random_state=1)
 
         test_feat = pd.concat([test_sig_feat, test_bkg_feat])
         test_lab = pd.concat([test_sig_lab, test_bkg_lab])
@@ -1881,97 +1803,106 @@ def train_and_optimize_model(signal_features, signal_lab, bkgnd_features, bkgnd_
         train = train_feat.assign(label=train_lab)
         cols = vars_for_train
 
-        _ks_back = 0
-        _ks_sign = 0
+        manual_params = {
+            'colsample_bylevel': 0.8129556523950925,
+            'colsample_bynode': 0.6312324405171867,
+            'colsample_bytree': 0.6479261529614907,
+            'gamma': 6.0528983610080305,
+            'learning_rate': 0.1438821307939924,
+            'max_leaves': 15,
+            'max_depth': 5,
+            'min_child_weight': 1.385895334160164,
+            'reg_alpha': 6.454459356576733,
+            'reg_lambda': 22.88928659795952,
+            'n_estimators': 100
+        }
 
-        while _ks_back < 0.05 or _ks_sign < 0.05:
-            manual_params = {
-                'colsample_bylevel': 0.8129556523950925,
-                'colsample_bynode': 0.6312324405171867,
-                'colsample_bytree': 0.6479261529614907,
-                'gamma': 6.0528983610080305,
-                'learning_rate': 0.1438821307939924,
-                'max_leaves': 15,
-                'max_depth': 5,
-                'min_child_weight': 1.385895334160164,
-                'reg_alpha': 6.454459356576733,
-                'reg_lambda': 22.88928659795952,
-                'n_estimators': 100
+        def objective(trial):
+            params = {
+                'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),
+                'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
+                'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
+                'gamma': trial.suggest_float('gamma', 5.5, 7),
+                'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2),
+                'max_leaves': trial.suggest_int('max_leaves', 10, 20),
+                'max_depth': trial.suggest_int('max_depth', 4, 6),
+                'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0),
+                'reg_alpha': trial.suggest_float('reg_alpha', 6, 7),
+                'reg_lambda': trial.suggest_float('reg_lambda', 22, 23),
+                'n_estimators': trial.suggest_int('n_estimators', 90, 120)
             }
+            model = xgb.XGBClassifier(objective='binary:logistic', tree_method='hist', **params)
+            model.fit(train_feat[cols], train_lab)
+            preds = model.predict_proba(test_feat[cols])[:, 1]
+            return roc_auc_score(test_lab, preds)
 
-            def objective(trial):
-                params = {
-                    'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.7, 0.9),
-                    'colsample_bynode': trial.suggest_float('colsample_bynode', 0.6, 0.7),
-                    'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 0.7),
-                    'gamma': trial.suggest_float('gamma', 5.5, 7),
-                    'learning_rate': trial.suggest_float('learning_rate', 0.1, 0.2),
-                    'max_leaves': trial.suggest_int('max_leaves', 10, 20),
-                    'max_depth': trial.suggest_int('max_depth', 4, 6),
-                    'min_child_weight': trial.suggest_float('min_child_weight', 1.0, 2.0),
-                    'reg_alpha': trial.suggest_float('reg_alpha', 6, 7),
-                    'reg_lambda': trial.suggest_float('reg_lambda', 22, 23),
-                    'n_estimators': trial.suggest_int('n_estimators', 90, 120)
-                }
-                model = xgb.XGBClassifier(objective='binary:logistic', tree_method='hist', **params)
-                model.fit(train_feat[cols], train_lab)
-                preds = model.predict_proba(test_feat[cols])[:, 1]
-                return roc_auc_score(test_lab, preds)
+        study = optuna.create_study(direction='maximize')
+        study.enqueue_trial(manual_params)
+        study.optimize(objective, n_trials=50)
 
-            study = optuna.create_study(direction='maximize')
-            study.enqueue_trial(manual_params)
-            study.optimize(objective, n_trials=50)
+        best_hyperparams = study.best_trial.params
 
-            # Mostrar mejores hiperparámetros
-            text_widget_3.delete('1.0', 'end')
-            text_widget_3.insert('1.0', f"Best hyperparameters:\n{study.best_trial.params}\n\nBest score: {study.best_trial.value}")
+        train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
+        test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
 
-            best_hyperparams = study.best_trial.params
+        eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
 
-            train_feat[cols] = train_feat[cols].fillna(train_feat[cols].mean())
-            test_feat[cols] = test_feat[cols].fillna(train_feat[cols].mean())
+        modelv1 = xgb.XGBClassifier(
+            objective='binary:logistic',
+            tree_method='hist',
+            n_jobs=5,
+            max_leaves=best_hyperparams['max_leaves'],
+            max_depth=best_hyperparams['max_depth'],
+            learning_rate=best_hyperparams['learning_rate'],
+            reg_alpha=best_hyperparams['reg_alpha'],
+            reg_lambda=best_hyperparams['reg_lambda'],
+            min_child_weight=best_hyperparams['min_child_weight'],
+            colsample_bylevel=best_hyperparams['colsample_bylevel'],
+            colsample_bynode=best_hyperparams['colsample_bynode'],
+            colsample_bytree=best_hyperparams['colsample_bytree'],
+            gamma=best_hyperparams['gamma'],
+            n_estimators=best_hyperparams['n_estimators'],
+            early_stopping_rounds=10,
+            eval_metric=['logloss', 'auc']
+        )
 
-            eval_set = [(train_feat[cols], train_lab), (test_feat[cols], test_lab)]
+        run = wandb.init(project=nameproyect.get(), name="XGB-run", reinit=True)
 
-            modelv1 = xgb.XGBClassifier(
-                objective='binary:logistic',
-                tree_method='hist',
-                n_jobs=5,
-                max_leaves=best_hyperparams['max_leaves'],
-                max_depth=best_hyperparams['max_depth'],
-                learning_rate=best_hyperparams['learning_rate'],
-                reg_alpha=best_hyperparams['reg_alpha'],
-                reg_lambda=best_hyperparams['reg_lambda'],
-                min_child_weight=best_hyperparams['min_child_weight'],
-                colsample_bylevel=best_hyperparams['colsample_bylevel'],
-                colsample_bynode=best_hyperparams['colsample_bynode'],
-                colsample_bytree=best_hyperparams['colsample_bytree'],
-                gamma=best_hyperparams['gamma'],
-                n_estimators=best_hyperparams['n_estimators'],
-                early_stopping_rounds=10,
-                eval_metric=['logloss', 'auc']
-            )
+        modelv1.fit(
+            train_feat[cols], train_lab,
+            eval_set=eval_set,
+            verbose=True
+        )
 
-            # ✅ Logging con WandB sin callback
-            run = wandb.init(project=nameproyect.get(), name="XGB-run", reinit=True)
+        results = modelv1.evals_result()
+        for epoch in range(len(results["validation_0"]["logloss"])):
+            wandb.log({
+                "epoch": epoch,
+                "train-logloss": results["validation_0"]["logloss"][epoch],
+                "test-logloss": results["validation_1"]["logloss"][epoch]
+            })
 
-            modelv1.fit(
-                train_feat[cols], train_lab,
-                eval_set=eval_set,
-                verbose=True
-            )
+        wandb.finish()
 
-            results = modelv1.evals_result()
-            for epoch in range(len(results["validation_0"]["logloss"])):
-                wandb.log({
-                    "epoch": epoch,
-                    "train-logloss": results["validation_0"]["logloss"][epoch],
-                    "test-logloss": results["validation_1"]["logloss"][epoch]
-                })
+        # ============================
+        # Cálculo de estadísticos KS
+        # ============================
+        probs = modelv1.predict_proba(test_feat[cols])[:, 1]
+        preds_back = probs[test_lab == 0]
+        preds_sign = probs[test_lab == 1]
 
-            wandb.finish()
+        _ks_back = ks_2samp(preds_back, np.random.uniform(0, 1, len(preds_back))).statistic
+        _ks_sign = ks_2samp(preds_sign, np.random.uniform(0, 1, len(preds_sign))).statistic
 
-            return modelv1
+        # ============================
+        # Mostrar resultados en GUI
+        # ============================
+        text_widget_3.delete('1.0', 'end')
+        text_widget_3.insert('1.0', f"Best hyperparameters:\n{study.best_trial.params}\n\n")
+        text_widget_3.insert('end', f"Best AUC: {study.best_trial.value:.4f}\n")
+        text_widget_3.insert('end', f"KS Background: {_ks_back:.4f}\nKS Signal: {_ks_sign:.4f}")
+
+        return modelv1
 
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred during training: {e}")
@@ -2199,7 +2130,7 @@ frame4_graphs = ttk.LabelFrame(tab4_scrollable, text="6. Visualize Generated Plo
 frame4_graphs.pack(fill="x", padx=10, pady=10)
 
 # Lista de nombres de gráficas disponibles
-available_plots = [
+available_plots = [ "",
     "Score Distribution",
     "Feature Importance",
     "Confusion Matrix",
@@ -2367,7 +2298,8 @@ row_carga5 = ttk.Frame(frame5_carga)
 row_carga5.pack(pady=5)
 
 ttk.Label(row_carga5, text="Event size:").pack(side="left", padx=5)
-factor_entry = ttk.Entry(row_carga5, textvariable=factor_limite_2, width=10).pack(side="left", padx=5)
+factor_entry = ttk.Entry(row_carga5, textvariable=factor_limite_2, width=10)
+factor_entry.pack(side="left", padx=5)
 
 ttk.Label(row_carga5, text="Load and Filter CSV Events").pack(side="left", padx=5)
 ttk.Button(row_carga5, text="Load CSV", command=load_csv).pack(side="left", padx=5)
