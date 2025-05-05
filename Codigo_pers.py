@@ -417,7 +417,7 @@ else:
         
           comb_pares_names_mtrans = tuple(comb_pares_names_mtrans)
           print("New list of combinations:", comb_pares_names_mtrans)
-          combinaciones_mtrans = [revertir_tuplas(par) for par in comb_pares_names_mtrans]
+          combinaciones_pares_mtrans = [revertir_tuplas(par) for par in comb_pares_names_mtrans]
          #print("Nueva lista de combinaciones:", combinaciones_pares_mtrans)
  func_3=input("Do you want to add the calculation of DeltaR? Yes (1), No (0):")
  combinaciones_pares_deltar=[]
