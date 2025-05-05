@@ -248,9 +248,11 @@ else:
                     if current_event:
                         event_typ_counts = [r['typ'] for r in current_event]
                         event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+                        event_typ_btag_tuples = [(r['typ'], r['btag']) for r in current_event]
                         if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
                             if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                                event_indices.extend(current_event)
+                                if all(sum(1 for _, btag in event_typ_btag_tuples if _ == 4 and btag != 0) >= num_list_first_third_elements.count((4, 1)) for tup in num_list_first_third_elements if tup[0] == 4 and tup[1] == 1):
+                                    event_indices.extend(current_event)
                     current_event = []
                     current_event_number = row['#']
                 current_event.append(row)
@@ -258,15 +260,19 @@ else:
             if current_event:
                 event_typ_counts = [r['typ'] for r in current_event]
                 event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
+                event_typ_btag_tuples = [(r['typ'], r['btag']) for r in current_event]
                 if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
                     if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                        event_indices.extend(current_event)
+                        if all(sum(1 for _, btag in event_typ_btag_tuples if _ == 4 and btag != 0) >= num_list_first_third_elements.count((4, 1)) for tup in num_list_first_third_elements if tup[0] == 4 and tup[1] == 1):
+                            event_indices.extend(current_event)
         return pd.DataFrame(event_indices)
     except Exception as e:
         print(f"Error during event filtering: {e}")
         return pd.DataFrame()
   print("Start the filtering of data.")
   filtered_dfsg = procesar_en_bloques(filtered_dfsg, lista_num_mod, bloque_tamano=100000)
+  #filtered_dfsg.to_csv("señal_filt_ivan.csv", index=False)
+  
  print("Please enter the particles you want to analyze in the final state.")
  print("First, enter the number of particles (n) followed by the name of the particle.")
  print("The available particles are: a(photon), e-(electron), e+(positron), mu+(antimuon), mu-(muon), t(tau), j(jet) and jb(jet b tagged)\n")
