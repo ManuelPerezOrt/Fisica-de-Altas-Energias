@@ -241,6 +241,10 @@ ttk.Button(background_buttons, text="Remove File", command=remove_selected_backg
 ttk.Button(background_buttons, text="Generate Background", command=generate_background_csv).pack(pady=2)
 
 # Contenido de la segunda pestaña
+# ----------- Frame: Activación/Desactivación de Funciones de Cálculo ----------- #
+frame_funciones = ttk.LabelFrame(tab2_scrollable, text="3. Activar Funciones de Cálculo", padding=10)
+frame_funciones.pack(fill="x", padx=10, pady=10, anchor="w")
+
 
 # Diccionarios de partículas
 particulas_dict = {
@@ -526,6 +530,35 @@ comb_cuartetos_listbox.config(yscrollcommand=comb_cuartetos_scrollbar.set)
 
 ttk.Button(cuartetos_frame, text="Overwrite List", command=overwrite_cuartetos).pack(side="left", padx=10)
 
+frame_funciones = ttk.LabelFrame(tab2_scrollable, text="3. Activate Functions of Calculus", padding=10)
+# Diccionario de funciones disponibles (clave: nombre, valor: estado inicial)
+funciones_calculo = {
+    "Invariant Mass": tk.BooleanVar(value=True),  # Activado por defecto
+    "Transverse Mass": tk.BooleanVar(value=False),
+    "Delta R": tk.BooleanVar(value=False),
+    "Ratio PT": tk.BooleanVar(value=False),  # Desactivado por defecto
+    "Eta Product": tk.BooleanVar(value=False),
+    "Eta Separation": tk.BooleanVar(value=False),
+    "Number of jets per event": tk.BooleanVar(value=False)
+}
+
+# Crear checkboxes para cada función
+for texto, var in funciones_calculo.items():
+    ttk.Checkbutton(
+        frame_funciones,
+        text=texto,
+        variable=var,
+        onvalue=True,
+        offvalue=False
+    ).pack(anchor="w", padx=5, pady=2 )
+
+
+frame_funciones.pack(fill="x", padx=10, pady=(0, 10), anchor="sw") 
+# Función para obtener el estado de las funciones (puedes llamarla desde otras partes del código)
+def obtener_estado_funciones():
+    return {nombre: var.get() for nombre, var in funciones_calculo.items()}
+
+
 ##### Aqui inicia la tercer pestaña
 
 # FUNCION PARA FILTRAR LOS EVENTOS
@@ -541,7 +574,6 @@ def filtrar_eventos(df, num_list):
             if current_event:
                 event_typ_counts = [r['typ'] for r in current_event]
                 event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
-                event_typ_btag_tuples = [(r['typ'], r['btag']) for r in current_event]
                 if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
                     if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
                         if all(sum(1 for _, btag in event_typ_btag_tuples if _ == 4 and btag != 0) >= num_list_first_third_elements.count((4, 1)) for tup in num_list_first_third_elements if tup[0] == 4 and tup[1] == 1):
@@ -725,6 +757,37 @@ def phi_part(evento, listapart):
             return 0 
     
     return 0
+#Dif. eta
+def DifEta(evento,comb):
+    prt1 = evento[evento['typ'] == comb[0][0]]
+    prt2 = evento[evento['typ']== comb[1][0]]
+    if comb[0][0] in [1, 2]:
+            prt1 = prt1[prt1['ntrk'] == comb[0][2]]
+    if comb[1][0] in [1, 2]:
+            prt2 = prt2[prt2['ntrk'] == comb[1][2]]
+        # Condición extra para typ 4
+    if comb[0][0] == 4:
+            if comb[0][2] == 0:
+                prt1 = prt1[prt1['btag'] == comb[0][2]]
+            elif comb[0][2] == 1:
+                prt1 = prt1[prt1['btag'].isin([1, 2])] 
+    if comb[1][0] == 4:
+            if comb[1][2] == 0:
+                prt2 = prt2[prt2['btag'] == comb[1][2]]
+            elif comb[1][2] == 1:
+                prt2 = prt2[prt2['btag'].isin([1, 2])]
+    if not prt1.empty and not prt2.empty:
+        # Obtener el pt del primer fotón y de la MET
+        posicion1=comb[0][1]-1
+        posicion2=comb[1][1]-1
+        if posicion1 < len(prt1) and posicion2 < len(prt2):
+          eta_prt1 = prt1.iloc[posicion1]['eta']
+          eta_prt2 = prt2.iloc[posicion2]['eta']
+          return abs(eta_prt1-eta_prt2)
+        else:
+          return 0
+    return 0
+
 #OBTENCIÓN ETA
 def eta_part(evento,listapart):
     prt=evento[evento['typ']==listapart[0]]
@@ -857,12 +920,23 @@ def m_inv(evento, comb):
         return m_in
     return 0
 #FUNCION PARA CALCULAR LOS EVENTOS
-def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos, batch_size=300):
+def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, combinaciones_cuartetos, batch_size=1000):
     global progress_bar_c, progress_var_c
-
+    estados = obtener_estado_funciones()
+    # Inicializar listas solo si la función está activada
+    #masainv = [] if estados["Invariant Mass"] else None
+    #masainv_trios = [] if estados["Invariant Mass"] else None
+    #masainv_cuartetos = [] if estados["Invariant Mass"] else None
+    #masatrans = [] if estados["Transverse Mass"] else None
+    #deltar = [] if estados["Delta R"] else None
+    #Ratio_pt = [] if estados["Ratio PT"] else None
+    #X_eta = [] if estados["Eta Product"] else None
+    #dif_eta=[] if estados["Eta Separation"] else None
+    #no_jets=[] if estados["Number of jets per event"] else None
     masainv, masainv_trios, masainv_cuartetos = [], [], []
     masatrans, deltar, no_jets = [], [], []
-    pt, phi, eta, X_eta, Ratio_pt = [], [], [], [], []
+    X_eta, Ratio_pt,dif_eta = [], [], []
+    pt, phi, eta = [], [], []
 
     total_batches = (len(df) + batch_size - 1) // batch_size
     start, batch_index = 0, 0
@@ -880,21 +954,30 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
         for _, row in batch_df.iterrows():
             if row['#'] == 0 and current_event:
                 event_df = pd.DataFrame(current_event)
-                no_jets.append(Num_jets(event_df))
-
-                masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
-                masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
+                if estados["Number of jets per event"]:
+                  no_jets.append(Num_jets(event_df))
+                if estados["Invariant Mass"]:
+                   masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
+                if estados["Invariant Mass"]:
+                   masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
 
                 pt.extend([pt_part(event_df, i) for i in lista_num_mod])
                 eta.extend([eta_part(event_df, i) for i in lista_num_mod])
                 phi.extend([phi_part(event_df, i) for i in lista_num_mod])
 
                 for c in combinaciones_pares:
-                    masainv.append(m_inv(event_df, c))
-                    masatrans.append(m_trans(event_df, c))
-                    deltar.append(Deltar(event_df, c))
-                    Ratio_pt.append(RatioPt(event_df, c))
-                    X_eta.append(ProductEta(event_df, c))
+                    if estados["Invariant Mass"]:
+                      masainv.append(m_inv(event_df, c))
+                    if estados["Transverse Mass"]:
+                      masatrans.append(m_trans(event_df, c))
+                    if estados["Delta R"]:
+                      deltar.append(Deltar(event_df, c))
+                    if estados["Ratio PT"]:
+                      Ratio_pt.append(RatioPt(event_df, c))
+                    if estados["Eta Product"]:
+                      X_eta.append(ProductEta(event_df, c))
+                    if estados["Eta Separation"]:
+                      dif_eta.append(DifEta(event_df, i))
 
                 current_event = []
             current_event.append(row)
@@ -902,21 +985,30 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
         # Procesar último evento del batch
         if current_event:
             event_df = pd.DataFrame(current_event)
-            no_jets.append(Num_jets(event_df))
-
-            masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
-            masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
+            if estados["Number of jets per event"]:
+              no_jets.append(Num_jets(event_df))
+            if estados["Invariant Mass"]:
+              masainv_cuartetos.extend([m_inv(event_df, c) for c in combinaciones_cuartetos])
+            if estados["Invariant Mass"]:
+              masainv_trios.extend([m_inv(event_df, c) for c in combinaciones_trios])
 
             pt.extend([pt_part(event_df, i) for i in lista_num_mod])
             eta.extend([eta_part(event_df, i) for i in lista_num_mod])
             phi.extend([phi_part(event_df, i) for i in lista_num_mod])
 
             for c in combinaciones_pares:
-                masainv.append(m_inv(event_df, c))
-                masatrans.append(m_trans(event_df, c))
-                deltar.append(Deltar(event_df, c))
-                Ratio_pt.append(RatioPt(event_df, c))
-                X_eta.append(ProductEta(event_df, c))
+                if estados["Invariant Mass"]:
+                   masainv.append(m_inv(event_df, c))
+                if estados["Transverse Mass"]:
+                  masatrans.append(m_trans(event_df, c))
+                if estados["Delta R"]:
+                  deltar.append(Deltar(event_df, c))
+                if estados["Ratio PT"]:
+                  Ratio_pt.append(RatioPt(event_df, c))
+                if estados["Eta Product"]:
+                  X_eta.append(ProductEta(event_df, c))
+                if estados["Eta Separation"]:
+                  dif_eta.append(DifEta(event_df, i))
 
         # Progreso
         batch_index += 1
@@ -930,7 +1022,7 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     def reshape_array(arr, n):
         arr = np.array(arr)
         return arr.reshape((len(arr) // n, n)) if arr.size > 0 else arr
-
+    dif_eta           = reshape_array(dif_eta, len(combinaciones_pares))
     masainv_trios     = reshape_array(masainv_trios, len(combinaciones_trios))
     masainv_cuartetos = reshape_array(masainv_cuartetos, len(combinaciones_cuartetos))
     deltar            = reshape_array(deltar, len(combinaciones_pares))
@@ -955,6 +1047,7 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
     columcuartetos = nombre_cols('m_inv ', comb_cuartetos_names)
     columpares3 = nombre_cols('PT1/PT2', comb_pares_names)
     columpares4 = nombre_cols('Eta1*Eta2', comb_pares_names)
+    columpares5 =nombre_cols('Eta Separation' , comb_pares_names)
 
     # Convertir arrays a DataFrames solo si tienen contenido
     def safe_df(data, cols): return pd.DataFrame(data, columns=cols) if len(data) > 0 else pd.DataFrame()
@@ -969,10 +1062,11 @@ def calculos_eventos(df, lista_num, combinaciones_pares, combinaciones_trios, co
         safe_df(masainv_trios, columtrios),
         safe_df(masainv_cuartetos, columcuartetos),
         safe_df(Ratio_pt, columpares3),
-        safe_df(X_eta, columpares4)
+        safe_df(X_eta, columpares4),
+        safe_df(dif_eta, columpares5)
     ], axis=1)
-
-    csv_combined["No_jets"] = no_jets
+    if estados["Number of jets per event"]:
+      csv_combined["No_jets"] = no_jets
     return csv_combined
 
 #FUNCION PARA FILTRAR LOS EVENTOS
@@ -1111,10 +1205,8 @@ def ejecutar_calculo():
 
     finally:
         calcular_btn.config(state=tk.NORMAL)  # Reactivar el botón al finalizar
-
 import plotly.graph_objects as go
 from scipy.stats import gaussian_kde, norm, expon
-
 def generar_grafica_v2():
     columna = columna_var.get().strip()
     if not columna or df_combined is None or columna not in df_combined.columns:
@@ -1315,7 +1407,6 @@ rango_x_var = tk.StringVar()
 bins_var = tk.StringVar()
 log_var = tk.BooleanVar()
 ajuste_var = tk.StringVar()
-
 # --- Encabezado principal ---
 ttk.Label(tab3_scrollable, text="Upload or create the SIGNAL files for event filtering and calculation").pack(pady=5, fill='x', expand=True)
 
