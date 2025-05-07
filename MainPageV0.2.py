@@ -1210,9 +1210,9 @@ def generar_grafica_v2():
 
     # Layout
     fig.update_layout(
-        title={"text": f"$\\text{{{titulo}}}$", "x": 0.5},
-        xaxis_title=f"$\\text{{{etiqueta_x}}}$",
-        yaxis_title=f"$\\text{{{etiqueta_y}}}$",
+        title={"text": titulo, "x": 0.5},
+        xaxis_title=etiqueta_x,
+        yaxis_title=etiqueta_x,
         template="plotly_white",
         legend_title=leyenda,
         legend=dict(font=dict(size=12)),
