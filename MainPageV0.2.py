@@ -543,7 +543,8 @@ def filtrar_eventos(df, num_list):
                 event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
                 if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
                     if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                        event_indices.extend(current_event)
+                        if all(sum(1 for _, btag in event_typ_btag_tuples if _ == 4 and btag != 0) >= num_list_first_third_elements.count((4, 1)) for tup in num_list_first_third_elements if tup[0] == 4 and tup[1] == 1):
+                           event_indices.extend(current_event)
             current_event = []
         current_event.append(row)
 
@@ -553,7 +554,8 @@ def filtrar_eventos(df, num_list):
         event_typ_ntrk_tuples = [(r['typ'], r['ntrk']) for r in current_event]
         if all(event_typ_counts.count(num) >= num_list_first_elements.count(num) for num in set(num_list_first_elements)):
             if all(event_typ_ntrk_tuples.count(tup) >= num_list_first_third_elements.count(tup) for tup in num_list_first_third_elements if tup[0] in [1, 2]):
-                event_indices.extend(current_event)
+                if all(sum(1 for _, btag in event_typ_btag_tuples if _ == 4 and btag != 0) >= num_list_first_third_elements.count((4, 1)) for tup in num_list_first_third_elements if tup[0] == 4 and tup[1] == 1):
+                    event_indices.extend(current_event)
 
     return pd.DataFrame(event_indices)
 
